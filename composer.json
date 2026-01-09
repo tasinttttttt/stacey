@@ -1,0 +1,23 @@
+{
+  "name": "kolber/stacey",
+  "autoload": {
+    "psr-4": {
+      "Stacey\\Core\\": "app/",
+      "Stacey\\Core\\Asset\\": "app/asset/",
+      "Stacey\\Core\\Parser\\": "app/parsers/",
+      "Stacey\\Core\\Lib\\": "app/lib/",
+      "Stacey\\Extension\\": "extension/"
+    }
+  },
+  "authors": [
+    {
+      "name": "Tayeb B.",
+      "email": "yo@tayebbayri.com"
+    }
+  ],
+  "require": {
+    "symfony/yaml": "^8.0",
+    "twig/twig": "^3.22",
+    "michelf/php-markdown": "^2.0"
+  }
+}

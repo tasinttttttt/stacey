@@ -505,7 +505,12 @@ class MarkdownParser
     public function doHardBreaks($text)
     {
         # Do hard breaks:
-        if (Config::$md_gfm_style_linebreaks) {
+        # Default to true for GFM style (line breaks become <br> tags)
+        $md_gfm_style_linebreaks = true;
+        if (class_exists(Config::class)) {
+            $md_gfm_style_linebreaks = Config::$md_gfm_style_linebreaks;
+        }
+        if ($md_gfm_style_linebreaks) {
             return preg_replace_callback('/ {2,}\n|\n{1}/', [&$this, '_doHardBreaks_callback'], $text);
         } else {
             return preg_replace_callback('/ {2,}\n/', [&$this, '_doHardBreaks_callback'], $text);

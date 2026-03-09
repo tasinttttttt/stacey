@@ -11,16 +11,11 @@
       "role": "Developer"
     }
   ],
-  "type": "composer-plugin",
-  "extra": {
-    "class": "Stacey\\Composer\\Plugin"
-  },
+  "type": "library",
   "license": "MIT",
   "minimum-stability": "stable",
   "require": {
     "php": "^8.3",
-    "composer-plugin-api": "^2.0",
-    "composer/composer": "^2.0",
     "intervention/image": "^3.0",
     "symfony/yaml": "^7.0",
     "twig/twig": "^3.0",
@@ -48,6 +43,7 @@
       "Stacey\\Tests\\": "tests/"
     }
   },
+  "bin": ["bin/stacey-setup"],
   "scripts": {
     "test": "phpunit",
     "analyse": "phpstan analyse --memory-limit=512M",
@@ -59,9 +55,7 @@
       "@test",
       "@analyse",
       "@fix-dry"
-    ],
-    "post-install-cmd": "Stacey\\Composer\\Setup::postInstall",
-    "post-update-cmd": "Stacey\\Composer\\Setup::postUpdate"
+    ]
   },
   "config": {
     "sort-packages": true,

@@ -11,7 +11,10 @@
 		  "role": "Developer"
 	  }
   ],
-  "type": "library",
+  "type": "composer-plugin",
+  "extra": {
+    "class": "Stacey\\Composer\\Plugin"
+  },
   "license": "MIT",
   "minimum-stability": "stable",
   "require": {

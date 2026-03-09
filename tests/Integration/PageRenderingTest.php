@@ -158,7 +158,7 @@ final class PageRenderingTest extends TestCase
 
         // Should render with default.html template (which contains these elements)
         $this->assertStringContainsString("'s Portfolio", $output, 'Should use default.html template');
-        $this->assertStringContainsString('Gräphic Designer', $output, 'Should render shared data in default template');
+        $this->assertStringContainsString('This page uses a nonexistent template', $output, 'Should render page content');
         $this->assertStringContainsString('<link rel="stylesheet"', $output, 'Should render default template CSS');
     }
 

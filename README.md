@@ -65,10 +65,9 @@ Create your first page and template:
 
 **2. Create a content file** (`content/index/page.yml`):
 ```yaml
----
 title: Hello World
----
-Welcome to Stacey! This is your homepage.
+content: |
+  Welcome to Stacey! This is your homepage.
 ```
 
 **3. Run the development server**:
@@ -159,12 +158,11 @@ content/
 Content files use **YAML front matter** with optional **Markdown** body:
 
 ```yaml
----
 title: My Page
 description: A short description for SEO
----
-# Optional Markdown content below
-This is the page content written in **Markdown**.
+content: |
+  # Optional Markdown content below
+  This is the page content written in **Markdown**.
 ```
 
 ### Project/Collection Pages
@@ -172,7 +170,6 @@ This is the page content written in **Markdown**.
 For project pages or collections, create a folder with a `project.yml` file:
 
 ```yaml
----
 meta:
     title: My Project
     date: 2024
@@ -188,7 +185,6 @@ contentfr: |
 contenten: |
     Project description in English.
     Supports **Markdown** formatting.
----
 
 Optional additional Markdown content here.
 ```
@@ -260,10 +256,8 @@ In your templates, pages provide these variables:
 Create `_shared.yml` in the content folder for data available to all pages:
 
 ```yaml
----
 site_name: My Website
 site_url: https://example.com
----
 ```
 
 Access in templates: `{{ page.root.site_name }}`

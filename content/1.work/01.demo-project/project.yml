@@ -11,18 +11,18 @@ infoen: |
 
 contentfr: |
   Ce projet **demo** montre comment organiser votre contenu avec Stacey CMS.
-
+  
   Les images sont placees directement dans le dossier du projet:
-
+  
   ![Demo Image](01.jpg)
-
+  
   Pour plus d'informations, voir la [documentation](https://github.com/kolber/stacey).
 
 contenten: |
   This _demo project_ shows how to organize your content with Stacey CMS.
-
+  
   Images are placed directly in the project folder:
-
+  
   ![Demo Image](01.jpg)
-
+  
   For more information, see the [documentation](https://github.com/kolber/stacey).

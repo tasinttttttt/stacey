@@ -77,14 +77,14 @@ final class StaceyTwigExtension extends AbstractExtension
 
     public function search($search, $limit = false)
     {
-        $result = Cache::get_full_cache();
+        $cache = new Cache($this->config, new Helpers($this->config));
+        $json = $cache->getFullCache();
 
         if (preg_match('/^\s*$/', $search)) {
             return [];
         }
         $search = preg_replace(['/\//', '/\s+/'], ['\/', '.+?'], $search);
         // $search = preg_replace(array('/o/i', '/a/i'), array('(o|ø|ö)', '(a|æ|å|ä)'), $search);
-        $json = json_decode($result, true);
 
         $results = [];
         foreach ($json as $page) {
@@ -234,10 +234,8 @@ final class StaceyTwigExtension extends AbstractExtension
     #
     public function absolute($relative_path)
     {
-        return Helpers::relative_path_to_absolute_url($relative_path);
-        // $server_name = (($_SERVER['HTTPS'] ? 'https://' : 'http://')) . $_SERVER['HTTP_HOST'];
-        // $relative_path = preg_replace(array('/^\/content/', '/^(\.+\/)*/'), '', $relative_path);
-        // return $server_name . str_replace('/index.php', $relative_path, $_SERVER['SCRIPT_NAME']);
+        $helpers = new Helpers($this->config);
+        return $helpers->relativePathToAbsoluteUrl($relative_path);
     }
 
     public function truncate($value, $length = 30, $preserve = false, $separator = '...')

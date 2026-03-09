@@ -28,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed asset URL generation (absolute paths to relative URLs)
 - Added content/ folder static file serving for images
 - Added content_path field for template image references
+- Removed "---" YAML delimiters from content files and README examples
+- Fixed test assertion for nonexistent template default behavior
 - Updated AGENTS.md with correct entry point (index.php)
 - Updated README.md with content editing documentation
 

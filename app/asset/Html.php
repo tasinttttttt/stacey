@@ -1,31 +1,50 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Stacey\Core\Asset;
 
-use Stacey\Core\Asset\Asset;
+use Stacey\Core\Helpers;
 
-class Html extends Asset
+/**
+ * HTML asset class.
+ */
+final class Html extends Asset
 {
+    /** @var array<int, string> */
+    public static array $identifiers = ['html', 'htm', 'php'];
 
-  static $identifiers = array('html', 'htm', 'php');
-
-  function __construct($file_path)
-  {
-    # create and store data required for this asset
-    parent::__construct($file_path);
-    # create and store additional data required for this asset
-    $this->set_extended_data($file_path);
-  }
-
-  function set_extended_data($file_path)
-  {
-    if (is_readable($file_path)) {
-      ob_start();
-      include $file_path;
-      $this->data['content'] = ob_get_contents();
-      ob_end_clean();
-    } else {
-      $this->data['content'] = '';
+    public function __construct(
+        string $filePath,
+        Helpers $helpers,
+    ) {
+        parent::__construct($filePath, $helpers);
+        $this->setExtendedData($filePath);
     }
-  }
+
+    /**
+     * Get the asset type.
+     */
+    #[\Override]
+    public static function getType(): string
+    {
+        return 'html';
+    }
+
+    /**
+     * Set extended data for HTML files.
+     */
+    private function setExtendedData(string $filePath): void
+    {
+        if (! is_readable($filePath)) {
+            $this->data['content'] = '';
+
+            return;
+        }
+
+        ob_start();
+        include $filePath;
+        $this->data['content'] = ob_get_contents() ?: '';
+        ob_end_clean();
+    }
 }

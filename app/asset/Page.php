@@ -1,106 +1,152 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Stacey\Core\Asset;
 
+use Stacey\Core\Config;
 use Stacey\Core\Helpers;
 use Stacey\Core\Lib\JSMin;
 use Stacey\Core\PageData;
 use Stacey\Core\Parser\TemplateParser;
-use Stacey\Extension\Config;
+use Stacey\Extension\Config as LegacyConfig;
 
+/**
+ * Page asset representing a content page.
+ */
 final class Page
 {
+    public string $urlPath;
+    public ?string $filePath;
+    public string $templateName;
+    public ?string $templateFile = null;
+    public string $templateType;
 
-  var $url_path;
-  var $file_path;
-  var $template_name;
-  var $template_file;
-  var $template_type;
-  var $data;
-  var $all_pages;
-  protected $images;
-  protected $next_siblings;
-  protected $children;
+    /** @var array<string, mixed> */
+    public array $data = [];
 
-  function __construct($url, $content = false)
-  {
-    # store url and converted file path
-    $this->file_path = Helpers::url_to_file_path($url);
-    $this->url_path = $url;
+    public function __construct(
+        string $url,
+        private readonly bool $content = false,
+        private readonly ?Config $config = null,
+    ) {
+        // For now, use legacy helpers during migration
+        $this->filePath = Helpers::url_to_file_path($url);
+        $this->urlPath = $url;
 
-    $this->template_name = self::template_name($this->file_path);
-    $this->template_file = self::template_file($this->template_name);
-    $this->template_type = self::template_type($this->template_file);
-    # create/set all content variables
-    PageData::create($this, $content);
-  }
+        if ($this->filePath === null) {
+            throw new \RuntimeException('404');
+        }
 
-  function clean_json($data)
-  {
-    # strip any trailing commas
-    # (run it twice to get partial matches)
-    $data = preg_replace('/([}\]"][\s\n]*),([\s\n]*[}\]])/', '$1$2', $data);
-    $data = preg_replace('/([}\]"][\s\n]*),([\s\n]*[}\]])/', '$1$2', $data);
-    # strip newline characters
-    $data = preg_replace('/\n/', '', $data);
-    # minfy it
-    $data = JSMin::minify($data);
-    return $data;
-  }
+        $this->templateName = self::templateName($this->filePath) ?? '';
+        $this->templateFile = self::templateFile($this->templateName);
+        $this->templateType = self::templateType($this->templateFile);
 
-  function parse_template()
-  {
-    $assets = [
-      'next_sibling',
-      'previous_sibling',
-      'images',
-      'video',
-      'videos',
-      'audio',
-      'root'
-    ];
-    foreach ($assets as $asset) {
-      if (isset($this->data[$asset])) {
-        $this->data[$asset] = Helpers::toAssets($this->data[$asset]);
-      }
+        PageData::create($this, $this->content);
     }
 
-    $data = TemplateParser::parse($this->data, $this->template_file);
-    # post-parse JSON
-    if (strtolower($this->template_type) == 'json') {
-      $data = $this->clean_json($data);
+    /**
+     * Clean JSON output.
+     */
+    public function cleanJson(string $data): string
+    {
+        // Strip trailing commas (run twice for nested matches)
+        $data = preg_replace('/([}\]"][\s\n]*),([\s\n]*[}\]])/', '$1$2', $data);
+        $data = preg_replace('/([}\]"][\s\n]*),([\s\n]*[}\]])/', '$1$2', (string) $data);
+
+        // Remove newlines and minify
+        $data = preg_replace('/\n/', '', (string) $data);
+
+        return JSMin::minify($data);
     }
-    return $data;
-  }
 
-  # magic variable assignment
-  function __set($name, $value)
-  {
-    $this->data[strtolower($name)] = $value;
-    // $this->{strtolower($name)} = $value;
-  }
+    /**
+     * Parse and render the page template.
+     */
+    public function parseTemplate(): string
+    {
+        $assets = ['next_sibling', 'previous_sibling', 'images', 'video', 'videos', 'audio', 'root', 'children', 'siblings', 'siblings_and_self'];
 
-  static function template_type($template_file)
-  {
-    preg_match('/\.([\w\d]+?)$/', $template_file, $ext);
-    return isset($ext[1]) ? $ext[1] : false;
-  }
+        foreach ($assets as $asset) {
+            if (isset($this->data[$asset])) {
+                $this->data[$asset] = Helpers::to_assets($this->data[$asset]);
+            }
+        }
 
-  static function template_name($file_path)
-  {
-    $txts = array_keys(Helpers::list_files($file_path, '/\.(yml|txt)/'));
-    # return first matched .yml file
-    return (!empty($txts)) ? preg_replace('/\.(yml|txt)/', '', $txts[0]) : false;
-  }
+        $data = TemplateParser::render($this->data, $this->templateFile);
 
-  static function template_file($template_name)
-  {
-    preg_match('/(\.[\w\d]+?)$/', $_SERVER["REQUEST_URI"], $ext);
-    $extension = isset($ext[1]) ? $ext[1] : '.*';
-    $template_name = preg_replace('/([^.]*\.)?([^.]*)$/', '\\2', $template_name);
-    $template_file = glob(Config::$templates_folder . '/' . $template_name . $extension);
-    if (!isset($template_file[0])) $template_file = glob(Config::$templates_folder . '/' . $template_name . '.*');
-    # return template if one exists
-    return isset($template_file[0]) ? $template_file[0] : Config::$templates_folder . '/default.html';
-  }
+        // Post-process JSON
+        if (strcasecmp($this->templateType, 'json') === 0) {
+            return $this->cleanJson($data);
+        }
+
+        return $data;
+    }
+
+    /**
+     * Magic setter for data array.
+     */
+    public function __set(string $name, mixed $value): void
+    {
+        $this->data[strtolower($name)] = $value;
+    }
+
+    /**
+     * Magic getter for data array.
+     *
+     * @return mixed
+     */
+    public function __get(string $name)
+    {
+        return $this->data[strtolower($name)] ?? null;
+    }
+
+    /**
+     * Get template type from file extension.
+     */
+    public static function templateType(?string $templateFile): string
+    {
+        if ($templateFile === null) {
+            return 'html';
+        }
+
+        if (preg_match('/\.([\w\d]+)$/', $templateFile, $matches)) {
+            return $matches[1];
+        }
+
+        return 'html';
+    }
+
+    /**
+     * Get template name from directory.
+     */
+    public static function templateName(string $filePath): ?string
+    {
+        $txts = array_keys(Helpers::list_files($filePath, '/\.(yml|txt)/'));
+
+        return $txts === [] ? null : preg_replace('/\.(yml|txt)/', '', $txts[0]);
+    }
+
+    /**
+     * Get template file path.
+     */
+    public static function templateFile(?string $templateName): ?string
+    {
+        if ($templateName === null) {
+            return LegacyConfig::$templates_folder . '/default.html';
+        }
+
+        $requestUri = $_SERVER['REQUEST_URI'] ?? '';
+        preg_match('/(\.[\w\d]+?)$/', (string) $requestUri, $ext);
+        $extension = $ext[1] ?? '.*';
+
+        $templateName = preg_replace('/([^.]*\.)?([^.]*)$/', '\\2', $templateName);
+        $templateFile = glob(LegacyConfig::$templates_folder . '/' . $templateName . $extension);
+
+        if ($templateFile === [] || $templateFile === false) {
+            $templateFile = glob(LegacyConfig::$templates_folder . '/' . $templateName . '.*');
+        }
+
+        return $templateFile[0] ?? LegacyConfig::$templates_folder . '/default.html';
+    }
 }

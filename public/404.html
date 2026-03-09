@@ -5,20 +5,61 @@
     <meta http-equiv="Content-type" content="text/html; charset=utf-8">
     <title>Page not found (404)</title>
     <meta name="description" content="">
+    <link rel="shortcut icon" href="/favicon.png">
+    <link href='http://fonts.googleapis.com/css?family=Cutive' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Cutive+Mono' rel='stylesheet' type='text/css'>
     <style type="text/css" media="screen">
-      body { font-family: "Times New Roman", "Times", times, sans-serif; text-align: center; }
-      h1 { margin: 35px 0px 6px 0px; text-decoration: underline; }
-      h2 { margin: 6px 0px; }
-      p { margin: 6px 0px; }
-      a { color: #000; text-decoration: none; border-bottom: 1px solid #999; }
+      body {
+          font-family: "Cutive", sans-serif;
+          text-align:center;
+          background: #3C4A59;
+          color: #f9f9f9;
+      }
+        #message{
+            padding: 25px;
+            position:fixed;
+            top:0;
+            left:0;
+            right:0;
+            bottom:0;
+            margin:auto;
+            width:300px;
+            height:50px;
+            
+        }
+      h2 {
+          margin: 6px 0px;
+          display: inline-block;
+          background: tomato;
+          padding:25px;
+          font-weight: normal;
+          font-size: 18px;
+          cursor: default
+      }
+      p {
+          margin: 6px 0px;
+          display: inline-block;
+          color:#f9f9f9;
+      }
+      a { 
+          font-family: cutive mono;
+          font-size: 14px;
+          color:#f9f9f9;
+          text-decoration: none;
+          border-bottom: 2px solid #f9f9f9;
+      }
+        a:hover{
+            border-bottom: 2px solid tomato
+        }
     </style>
   </head>
   <body>
     <div id="container">
-      <h1>404</h1>
-      <h2>Page could not be found.</h2>
-      <p>Unfortunately, the page you were looking for does not exist here.</p>
-      <p><a href="/">&larr; Index</a></p>
+     <div id="message">
+      <h2>Nothing to do here</h2>
+      <br/>
+      <p><a href="/">Go back</a></p>
+      </div>
     </div>
   </body>
 </html>

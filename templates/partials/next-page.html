@@ -1,3 +1,7 @@
-{% for sibling in page.next_sibling %}
-<p><a href="{{ sibling.url }}">Next project</a>: &rarr; {{ sibling.title }}</p>
+{% if page.index != page.siblings_count %}
+ <aside class="projectnavitem">
+  {% for sibling in page.next_sibling %}
+  <a href="{{ sibling.url }}">Projet Suivant</a> 
 {% endfor %}
+</aside>
+{% endif %}

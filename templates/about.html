@@ -1,0 +1,11 @@
+{% include 'partials/header.html' %}
+
+<article>
+    <div class="content">
+        {% if page.content %}
+        {{ page.content|raw }}
+        {% endif %}
+    </div>
+</article>
+
+{% include 'partials/footer.html' %}

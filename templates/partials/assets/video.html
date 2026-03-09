@@ -1,10 +1,13 @@
 {% for video in page.video %}
-  <div class="media">
-    <object classid="clsid:02BF25D5-8C17-4B23-BC80-D3488ABDDC6B" codebase="http://www.apple.com/qtactivex/qtplugin.cab" width="{{ video.width }}" height="{{ video.height }}" >
-      <param name="src" value="{{ video.url }}">
-      <param name="autoplay" value="false">
-      <param name="controller" value="true">
-      <embed src="{{ video.url }}" width="{{ video.width }}" height="{{ video.height }}" autoplay="false" controller="true" pluginspage="http://www.apple.com/quicktime/download/"></embed>
-    </object>
-  </div>
+<video id='{{ video.file_name|raw }}' 
+class='video-js vjs-default-skin vjs-big-play-centered' 
+controls 
+preload='auto'
+width='{{ video.width }}'
+height='{{ video.height }}'>
+ <source src='{{ page.file_path|absolute }}/{{video.name|raw|lower}}.mp4' type='video/mp4' />
+ <source src='{{ page.file_path|absolute }}{{video.name|raw|lower}}.ogv' type='video/ogg' />
+ <source src='{{ page.file_path|absolute }}{{video.name|raw|lower}}.webm' type='video/webm' />
+ <p class='vjs-no-js'>To view this video please enable JavaScript, and consider upgrading to a web browser that <a href='http://videojs.com/html5-video-support/' target='_blank'>supports HTML5 video</a></p>
+</video>
 {% endfor %}

@@ -1,174 +1,254 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Stacey\Core;
 
 use Stacey\Core\Asset\Page;
-use Stacey\Extension\Config;
+use Stacey\Extension\Config as LegacyConfig;
 
+/**
+ * Main application class for Stacey CMS.
+ *
+ * Coordinates page rendering, caching, and HTTP response handling.
+ */
 final class Stacey
 {
+    public const string VERSION = '4.0.0';
 
-  static $version = '3.0.0';
+    private string $route = '';
 
-  public $route;
-
-  function handle_redirects()
-  {
-    # rewrite any calls to /index or /app back to /
-    if (preg_match('/^\/?(index|app)\/?$/', $_SERVER['REQUEST_URI'])) {
-      header('HTTP/1.1 301 Moved Permanently');
-      header('Location: ../');
-      return true;
+    public function __construct(
+        private readonly Config $config,
+        private readonly Helpers $helpers,
+        private readonly Cache $cache,
+        private readonly array $serverParams = [],
+        private readonly array $getParams = [],
+    ) {
     }
-    # add trailing slash if required
-    if (!preg_match('/\/$/', $_SERVER['REQUEST_URI']) && !preg_match('/[\.\?\&][^\/]+$/', $_SERVER['REQUEST_URI'])) {
-      header('HTTP/1.1 301 Moved Permanently');
-      header('Location:' . $_SERVER['REQUEST_URI'] . '/');
-      return true;
-    }
-    return false;
-  }
 
-  function php_fixes()
-  {
-    # in PHP/5.3.0 they added a requisite for setting a default timezone, this should be handled via the php.ini, but as we cannot rely on this, we have to set a default timezone ourselves
-    if (function_exists('date_default_timezone_set')) date_default_timezone_set('Australia/Melbourne');
-  }
+    /**
+     * Main entry point to run the application.
+     */
+    public function run(string $requestUri): void
+    {
+        $this->applyPhpFixes();
 
-  function set_content_type($template_file)
-  {
-    # split by file extension
-    preg_match('/\.([\w\d]+?)$/', $template_file, $split_path);
-
-    switch ($split_path[1]) {
-      case 'txt':
-        # set text/utf-8 charset header
-        header("Content-type: text/plain; charset=utf-8");
-        break;
-      case 'atom':
-        # set atom+xml/utf-8 charset header
-        header("Content-type: application/atom+xml; charset=utf-8");
-        break;
-      case 'rss':
-        # set rss+xml/utf-8 charset header
-        header("Content-type: application/rss+xml; charset=utf-8");
-        break;
-      case 'rdf':
-        # set rdf+xml/utf-8 charset header
-        header("Content-type: application/rdf+xml; charset=utf-8");
-        break;
-      case 'xml':
-        # set xml/utf-8 charset header
-        header("Content-type: text/xml; charset=utf-8");
-        break;
-      case 'json':
-        # set json/utf-8 charset header
-        header('Content-type: application/json; charset=utf-8');
-        break;
-      case 'css':
-        # set text/css charset header
-        header('Content-type: text/css; charset=utf-8');
-        break;
-      default:
-        # set html/utf-8 charset header
-        header("Content-type: text/html; charset=utf-8");
-    }
-  }
-
-  function etag_expired($cache)
-  {
-    header('Etag: "' . $cache->hash . '"');
-    # Safari incorrectly caches 304s as empty pages, so don't serve it 304s
-    if (strpos($_SERVER['HTTP_USER_AGENT'], 'Safari') !== false) return true;
-    # Check for a local cache
-    if (isset($_SERVER['HTTP_IF_NONE_MATCH']) && stripslashes($_SERVER['HTTP_IF_NONE_MATCH']) == '"' . $cache->hash . '"') {
-      # local cache is still fresh, so return 304
-      header("HTTP/1.0 304 Not Modified");
-      header('Content-Length: 0');
-      return false;
-    } else {
-      return true;
-    }
-  }
-
-  function render($file_path, $template_file)
-  {
-    $cache = new Cache($file_path, $template_file);
-    # set any custom headers
-    $this->set_content_type($template_file);
-    header('Generator: stacey-v' . Stacey::$version);
-    # if etag is still fresh, return 304 and don't render anything
-    if (!$this->etag_expired($cache)) return;
-    # if cache has expired
-    if ($cache->expired()) {
-      # render page & create new cache
-      echo $cache->create($this->route);
-    } else {
-      # render the existing cache
-      echo $cache->render();
-    }
-  }
-
-  function create_page($file_path)
-  {
-    # return a 404 if a matching folder doesn't exist
-    if (!file_exists($file_path)) throw new \Exception('404');
-
-    # register global for the path to the page which is currently being viewed
-    global $current_page_file_path;
-    $current_page_file_path = $file_path;
-
-    # register global for the template for the page which is currently being viewed
-    global $current_page_template_file;
-    $template_name = Page::template_name($file_path);
-    $current_page_template_file = Page::template_file($template_name);
-
-    # error out if template file doesn't exist (or glob returns an error)
-    if (empty($template_name)) throw new \Exception('404');
-    # render page
-    $this->render($file_path, $current_page_template_file);
-  }
-
-  function __construct($get)
-  {
-    # sometimes when PHP release a new version, they do silly things - this function is here to fix them
-    $this->php_fixes();
-    # it's easier to handle some redirection through php rather than relying on a more complex .htaccess file to do all the work
-    if ($this->handle_redirects()) return;
-
-    # strip any leading or trailing slashes from the passed url
-    $key = $get; //key($get);
-    # if the key isn't a URL path, then ignore it
-    if (!preg_match('/\//', $key)) $key = false;
-    $key = preg_replace(array('/\/$/', '/^\//'), '', $key);
-
-
-    # store file path for this current page
-    $this->route = isset($key) ? $key : 'index';
-    # TODO: Relative root path is set incorrectly (missing an extra ../)
-    # strip any trailing extensions from the url
-    $this->route = preg_replace('/[\.][\w\d]+?$/', '', $this->route);
-
-    $file_path = Helpers::url_to_file_path($this->route);
-
-    try {
-      # create and render the current page
-      $this->create_page($file_path);
-    } catch (\Exception $e) {
-      if ($e->getMessage() == "404") {
-        # return 404 headers
-        header('HTTP/1.0 404 Not Found');
-        if (file_exists(Config::$content_folder . '/404')) {
-          $this->route = '404';
-          $this->create_page(Config::$content_folder . '/404');
-        } else if (file_exists(Config::$root_folder . 'public/404.html')) {
-          echo file_get_contents(Config::$root_folder . 'public/404.html');
-        } else {
-          echo '<h1>404</h1><h2>Page could not be found.</h2><p>Unfortunately, the page you were looking for does not exist here.</p>';
+        if ($this->handleRedirects($requestUri)) {
+            return;
         }
-      } else {
-        echo '<h3>' . $e->getMessage() . '</h3>';
-      }
+
+        $this->route = $this->parseRoute($requestUri);
+        $filePath = $this->helpers->urlToFilePath($this->route);
+
+        try {
+            if ($filePath === null) {
+                throw new \Exception('404');
+            }
+            $this->createPage($filePath);
+        } catch (\Exception $e) {
+            $this->handleException($e);
+        }
     }
-  }
+
+    /**
+     * Handle URL redirects (trailing slashes, index/app paths).
+     */
+    private function handleRedirects(string $requestUri): bool
+    {
+        $uri = $requestUri;
+
+        // Rewrite /index or /app to root
+        if (preg_match('/^\/?(index|app)\/?$/', $uri)) {
+            header('HTTP/1.1 301 Moved Permanently');
+            header('Location: ../');
+
+            return true;
+        }
+
+        // Add trailing slash if needed
+        if (! str_ends_with($uri, '/') && ! preg_match('/[\.\?\&][^\/]+$/', $uri)) {
+            header('HTTP/1.1 301 Moved Permanently');
+            header('Location:' . $uri . '/');
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Parse and clean the route from request URI.
+     */
+    private function parseRoute(string $requestUri): string
+    {
+        $route = $requestUri;
+
+        // Ignore non-URL paths
+        if (! str_contains($route, '/')) {
+            $route = '';
+        }
+
+        // Remove leading/trailing slashes
+        $route = trim($route, '/');
+
+        // Strip file extensions
+        $route = preg_replace('/\.[\w\d]+$/', '', $route);
+
+        return $route ?: 'index';
+    }
+
+    /**
+     * Apply PHP compatibility fixes.
+     */
+    private function applyPhpFixes(): void
+    {
+        date_default_timezone_set('Australia/Melbourne');
+    }
+
+    /**
+     * Set appropriate Content-Type header based on template file extension.
+     */
+    private function setContentType(string $templateFile): void
+    {
+        if (! preg_match('/\.([\w\d]+)$/', $templateFile, $matches)) {
+            header('Content-type: text/html; charset=utf-8');
+
+            return;
+        }
+
+        $contentType = match ($matches[1]) {
+            'txt' => 'text/plain; charset=utf-8',
+            'atom' => 'application/atom+xml; charset=utf-8',
+            'rss' => 'application/rss+xml; charset=utf-8',
+            'rdf' => 'application/rdf+xml; charset=utf-8',
+            'xml' => 'text/xml; charset=utf-8',
+            'json' => 'application/json; charset=utf-8',
+            'css' => 'text/css; charset=utf-8',
+            default => 'text/html; charset=utf-8',
+        };
+
+        header('Content-type: ' . $contentType);
+    }
+
+    /**
+     * Check if ETag matches client cache.
+     */
+    private function etagExpired(string $hash): bool
+    {
+        header('Etag: "' . $hash . '"');
+
+        // Safari incorrectly caches 304s as empty pages
+        $userAgent = $this->serverParams['HTTP_USER_AGENT'] ?? '';
+        if (str_contains((string) $userAgent, 'Safari')) {
+            return true;
+        }
+
+        // Check for matching ETag
+        $ifNoneMatch = $this->serverParams['HTTP_IF_NONE_MATCH'] ?? null;
+        if ($ifNoneMatch !== null && stripslashes((string) $ifNoneMatch) === '"' . $hash . '"') {
+            header('HTTP/1.0 304 Not Modified');
+            header('Content-Length: 0');
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Render a page using the appropriate template.
+     */
+    private function render(string $filePath, string $templateFile): void
+    {
+        $cacheKey = $this->cache->generateCacheKey($filePath, $templateFile);
+        $hash = $this->cache->generateHash($cacheKey);
+
+        $this->setContentType($templateFile);
+        header('Generator: stacey-v' . self::VERSION);
+
+        // Return 304 if ETag matches
+        if (! $this->etagExpired($hash)) {
+            return;
+        }
+
+        // Check if cache needs refresh
+        $cacheFile = $this->cache->getCacheFile($hash);
+        if (! $this->cache->expired($cacheFile)) {
+            echo $this->cache->render($cacheFile);
+
+            return;
+        }
+
+        // Render and cache
+        $content = $this->cache->create($this->route, $filePath, $templateFile);
+        echo $content;
+    }
+
+    /**
+     * Create and render a page.
+     *
+     * @throws \Exception If page not found (404)
+     */
+    private function createPage(string $filePath): void
+    {
+        if (! file_exists($filePath)) {
+            throw new \Exception('404');
+        }
+
+        $templateName = Page::templateName($filePath);
+
+        if ($templateName === null || $templateName === '' || $templateName === '0') {
+            throw new \Exception('404');
+        }
+
+        $templateFile = Page::templateFile($templateName);
+
+        if ($templateFile === null) {
+            throw new \Exception('404');
+        }
+
+        // Set globals for backward compatibility
+        $GLOBALS['current_page_file_path'] = $filePath;
+        $GLOBALS['current_page_template_file'] = $templateFile;
+
+        $this->render($filePath, $templateFile);
+    }
+
+    /**
+     * Handle exceptions during page rendering.
+     */
+    private function handleException(\Throwable $e): void
+    {
+        if ($e->getMessage() === '404') {
+            header('HTTP/1.0 404 Not Found');
+
+            // Try to load custom 404 page
+            $notFoundPath = LegacyConfig::$content_folder . '/404';
+            if (file_exists($notFoundPath)) {
+                $this->route = '404';
+
+                try {
+                    $this->createPage($notFoundPath);
+
+                    return;
+                } catch (\Exception) {
+                    // Fall through to default 404
+                }
+            }
+
+            // Try static 404.html
+            $static404 = LegacyConfig::$root_folder . 'public/404.html';
+            if (file_exists($static404)) {
+                echo file_get_contents($static404);
+
+                return;
+            }
+
+            // Default 404 message
+            echo '<h1>404</h1><h2>Page could not be found.</h2><p>Unfortunately, the page you were looking for does not exist here.</p>';
+        } else {
+            echo '<h3>' . htmlspecialchars($e->getMessage()) . '</h3>';
+        }
+    }
 }

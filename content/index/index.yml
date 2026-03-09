@@ -1,2 +1,10 @@
-page_description: A collection of Ñame's graphic design work
-title: Home
+title: Welcome
+page_description: |
+  A demo of Stacey CMS, a flat-file content management system.
+
+content: |
+  Welcome to this **demo** of Stacey CMS, a _flat-file_ content management system.
+
+  Navigate using the links above to see the CMS in action.
+
+  Learn more at [Stacey CMS](https://github.com/kolber/stacey).

@@ -1,57 +1,80 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Stacey\Core\Asset;
 
-use Stacey\Core\Asset\Asset;
+use Stacey\Core\Helpers;
 
+/**
+ * Image asset with metadata support.
+ */
 final class Image extends Asset
 {
+    /** @var array<int, string> */
+    public static array $identifiers = ['jpg', 'jpeg', 'gif', 'png'];
 
-  static $identifiers = array('jpg', 'jpeg', 'gif', 'png');
-
-  function __construct($file_path)
-  {
-    # create and store data required for this asset
-    parent::__construct($file_path);
-    # create and store additional data required for this asset
-    $this->set_extended_data($file_path);
-  }
-
-  function set_extended_data($file_path)
-  {
-    $small_version_path = preg_replace('/(\.[\w\d]+?)$/', '_sml$1', $this->link_path);
-    $large_version_path = preg_replace('/(\.[\w\d]+?)$/', '_lge$1', $this->link_path);
-
-    # if a matching _sml version exists, set asset.small
-    $small_relative_path = preg_replace('/(\.\.\/)+/', './', $small_version_path);
-    if (file_exists($small_relative_path) && !is_dir($small_relative_path)) {
-      $this->data['small'] = $small_version_path;
+    public function __construct(
+        string $filePath,
+        Helpers $helpers,
+    ) {
+        parent::__construct($filePath, $helpers);
+        $this->setExtendedData($filePath);
     }
 
-    # if a matching _lge version exists, set asset.large
-    $large_relative_path = preg_replace('/(\.\.\/)+/', './', $large_version_path);
-    if (file_exists($large_relative_path) && !is_dir($large_relative_path)) {
-      $this->data['large'] = $large_version_path;
+    /**
+     * Get the asset type.
+     */
+    #[\Override]
+    public static function getType(): string
+    {
+        return 'image';
     }
 
-    # set asset.width & asset.height variables
-    $img_data = getimagesize($file_path, $info);
-    preg_match_all('/\d+/', $img_data[3], $dimensions);
-    $this->data['width'] = $dimensions[0][0];
-    $this->data['height'] = $dimensions[0][1];
+    /**
+     * Set extended data for images.
+     */
+    private function setExtendedData(string $filePath): void
+    {
+        $smallVersionPath = preg_replace('/(\.[\w\d]+?)$/', '_sml$1', $this->data['url'] ?? '');
+        $largeVersionPath = preg_replace('/(\.[\w\d]+?)$/', '_lge$1', $this->data['url'] ?? '');
 
-    # set iptc variables
-    if (isset($info["APP13"])) {
-      $iptc = iptcparse($info["APP13"]);
-      # asset.title
-      if (isset($iptc["2#005"][0]))
-        $this->data['title'] = $iptc["2#005"][0];
-      # asset.description
-      if (isset($iptc["2#120"][0]))
-        $this->data['description'] = $iptc["2#120"][0];
-      # asset.keywords
-      if (isset($iptc["2#025"][0]))
-        $this->data['keywords'] = $iptc["2#025"][0];
+        // Check for small version
+        $smallRelativePath = preg_replace('/(\.\.\/)+/', './', $smallVersionPath);
+        if ($smallRelativePath !== null && file_exists($smallRelativePath) && ! is_dir($smallRelativePath)) {
+            $this->data['small'] = $smallVersionPath;
+        }
+
+        // Check for large version
+        $largeRelativePath = preg_replace('/(\.\.\/)+/', './', $largeVersionPath);
+        if ($largeRelativePath !== null && file_exists($largeRelativePath) && ! is_dir($largeRelativePath)) {
+            $this->data['large'] = $largeVersionPath;
+        }
+
+        // Get image dimensions
+        $imgData = getimagesize($filePath, $info);
+        if ($imgData !== false && isset($imgData[3])) {
+            preg_match_all('/\d+/', $imgData[3], $dimensions);
+            if (isset($dimensions[0][0]) && ($dimensions[0][0] !== '' && $dimensions[0][0] !== '0')) {
+                $this->data['width'] = (int) $dimensions[0][0];
+            }
+            if (isset($dimensions[0][1]) && ($dimensions[0][1] !== '' && $dimensions[0][1] !== '0')) {
+                $this->data['height'] = (int) $dimensions[0][1];
+            }
+        }
+
+        // Extract IPTC data
+        if (isset($info['APP13'])) {
+            $iptc = iptcparse($info['APP13']);
+            if (isset($iptc['2#005'][0])) {
+                $this->data['title'] = $iptc['2#005'][0];
+            }
+            if (isset($iptc['2#120'][0])) {
+                $this->data['description'] = $iptc['2#120'][0];
+            }
+            if (isset($iptc['2#025'][0])) {
+                $this->data['keywords'] = $iptc['2#025'][0];
+            }
+        }
     }
-  }
 }

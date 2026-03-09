@@ -1,0 +1,14 @@
+title: About
+
+content: |
+  About this **demo**.
+
+  Stacey is a _flat-file CMS_ that generates websites from simple text files. No database, no admin panel - just your content in YAML and Markdown files.
+
+  ## Key Features
+
+  - **File-based content** - No database required
+  - **Twig templating** - Powerful template engine
+  - **Nested pages** - Unlimited page hierarchy
+
+  See the [documentation](https://github.com/kolber/stacey) for more info.

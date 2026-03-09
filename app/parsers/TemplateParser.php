@@ -1,38 +1,78 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Stacey\Core\Parser;
 
-use Stacey\Extension\Config;
+use Stacey\Core\Config;
 use Stacey\Extension\StaceyTwigExtension;
-use Twig\Loader\FilesystemLoader;
 use Twig\Environment;
+use Twig\Loader\FilesystemLoader;
 
-final class TemplateParser
+/**
+ * Template parser using Twig engine.
+ */
+final readonly class TemplateParser
 {
-
-  static function find_template($template)
-  {
-    if (!file_exists($template)) {
-      throw new \Exception('\'' . $template . '\' template not found.');
+    public function __construct(
+        private Config $config,
+    ) {
     }
-    return preg_replace('/.+\//', '', $template);
-  }
 
-  static function parse($data, $template)
-  {
+    /**
+     * Find and validate template file.
+     *
+     * @throws \RuntimeException If template not found
+     */
+    private function findTemplate(string $template): string
+    {
+        if (! file_exists($template)) {
+            throw new \RuntimeException("'{$template}' template not found.");
+        }
 
-    $template = self::find_template($template);
+        return preg_replace('/.+\//', '', $template);
+    }
 
-    // Twig_Autoloader::register();
-    $loader = new FilesystemLoader(Config::$templates_folder);
-    $cache = is_writable(Config::$cache_folder . '/templates') ? Config::$cache_folder . '/templates' : false;
-    $twig = new Environment($loader, array(
-      'cache' => $cache,
-      'auto_reload' => true,
-      'autoescape' => false
-    ));
-    $twig->addExtension(new StaceyTwigExtension());
+    /**
+     * Parse template with data.
+     *
+     * @param array<string, mixed> $data
+     * @throws \RuntimeException If template not found or parsing fails
+     */
+    public function parse(array $data, string $template): string
+    {
+        $template = $this->findTemplate($template);
 
-    return $twig->render($template, array('page' => $data));
-  }
+        $cachePath = $this->config->cacheFolder . '/templates';
+        $cache = is_writable($cachePath) ? $cachePath : false;
+
+        $loader = new FilesystemLoader($this->config->templatesFolder);
+        $twig = new Environment($loader, [
+            'cache' => $cache,
+            'auto_reload' => true,
+            'autoescape' => false,
+        ]);
+
+        $twig->addExtension(new StaceyTwigExtension());
+
+        return $twig->render($template, ['page' => $data]);
+    }
+
+    /**
+     * Static wrapper for backward compatibility.
+     *
+     * @deprecated Use instance method parse() instead
+     * @param array<string, mixed> $data
+     * @throws \RuntimeException
+     */
+    public static function render(array $data, string $template): string
+    {
+        $config = new Config(
+            templatesFolder: \Stacey\Extension\Config::$templates_folder,
+            cacheFolder: \Stacey\Extension\Config::$cache_folder,
+        );
+        $parser = new self($config);
+
+        return $parser->parse($data, $template);
+    }
 }

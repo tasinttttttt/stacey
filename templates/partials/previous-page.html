@@ -1,5 +1,8 @@
-{% for sibling in page.previous_sibling %}
-<p>
-  <a href="{{ sibling.url }}">Previous project</a>: &larr; {{ sibling.title }}
-</p>
+
+{% if page.index != 1 %}
+ <aside class="projectnavitem">
+  {% for sibling in page.previous_sibling %}
+  <a href="{{ sibling.url }}">Projet Précédent<!--<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAAqCAYAAAADBl3iAAADuklEQVRoQ+2ZjY3UMBCF70qAEqAEKAFKgBKgBCiBKwFKgBKgBCgBWqAE8If8nQbHiZNN4ui0sRQlayfjeW+exz97e3Pl5fbK8d+cBJwKuHIGziFw5QI4k+ClQ+BZUs6jdD3Jd4RknaIqf5di+1ZU+Pt3qv8Vrl1FOkUAAAEhEO4A5ppbSpB+t8QONiTkR3oesznXp//eKwl4kVpfpYt7DSjRwQnvGOM3RScvciT3ybeqSpJqSoIEL/uf2y/YsHnHB5GAD+n3u2xFgBiP7FN/RIEMFQgALgs+fcmEcB8rKBqMb9L1viQA49/ThbG32eARQOkTR1WgQF9WnDGSKBb/Kfj/KV8EzsK7n7Nt6gYEEHnYATwGjihExiFY9t9K1igEIrDh0GWIoAgjj00UDVkDAvgYhvjgdWf0kB8dxwccvTThSSI2LSobcgj0gABY+prZQTpm3phgprJvHJN0qiR5to07iYfOrf+YHnCKPpXuVnkGu5BgxMGi0gcE4FBMEnuJAJAMs5hw753Zq9Ngd5KA2L9JCFJiFMd8dGq0nSgCku95JvLmFjMxUWe4LZ3G1vA0m4A1nQCaGQUJApoIK2skjywBTWbfSu5z/e1CgJ2UCdX6MfCqbU9SuhDwM0f/abo7F6MG6gH3PNTHyOEcsxE5Yq9h0YWAPxkgBFiU/ljCcyHm+3slxkMIMPqoIZIiWMAzBTMESJbkCJ73mBq7EAAYZpHHWfJ2GtcAgo9LVNtr03FcHNUSHiTOWTh1IcBOnAGIKFMfWd/FFCB5z82X64MIDuWYF0yQNfDWzVnFdiEAh5gGjYqrQsY1ThJ1HAEgSZH6cv+BihgCJESKG5+oHJ9dg0BuK3l2I8CVXpzSyigCGtnHXRugooIkYCryS9q6EWAeUPaowG2ru7QSOEAYLswYEEfC3HpN0I2AQUeNMJU5IeaLJRFuvduNAKc+HELqZvEYUfcbqMOtK+3sD1AJNlASw2Crc8BuBAAcySPnORlcouK+gfMJbEDI1FFXjLpDLSbNeLZAOyRUt8Mt+Vza7oxQi6LnDtyjOswFOM/SuVUARuItzyXGvutKgMtggLSmKRxWphBCLpj6pswdJFYPSOOaw+N9D1S7EmA+aG2BcY4oum6oST/+V6HcIQ3g8cxhSjEet/8jqHXY2JLe3PY4vRGhOAUCirG+5A8X+129X+hFAA4DkgiPAfUs0nbHc3natGTl1wxQTwJ0xn96/G+x/Kep6fSWLxxBwJb+r7Z1ErCawgdu4FTAAw/gavf/AoofDjoBTlt3AAAAAElFTkSuQmCC" class="navicon" />--></a> 
 {% endfor %}
+</aside>
+{% endif %}

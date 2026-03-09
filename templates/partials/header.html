@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ page.name }}</title>
+    <link rel="stylesheet" href="{{ page.root_path }}/public/css/style.css">
+</head>
+<body>
+    <div id="wrapper">
+        <header id="navigation">
+            <h2 id="sitetitle">{% if page.slug != '' %}<a href="{{ page.root_path }}">{{ page.root.site_name }}</a>{% endif %}</h2>
+            <h2 id="sitework"><a href="{{ page.root_path }}work" {% if page.parent[0].slug == 'work' or page.slug == 'work' %}class="active"{% endif %}>Work</a></h2>
+            <h2 id="siteinfo">
+            <a href="{{ page.root_path }}about" {% if page.slug == 'about' %}class="active"{% endif %}>About</a>
+            </h2>
+        </header>

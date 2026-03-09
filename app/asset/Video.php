@@ -1,27 +1,47 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Stacey\Core\Asset;
 
-use Stacey\Core\Asset\Asset;
+use Stacey\Core\Helpers;
 
-class Video extends Asset
+/**
+ * Video asset class.
+ */
+final class Video extends Asset
 {
+    /** @var array<int, string> */
+    public static array $identifiers = ['mov', 'mp4', 'm4v', 'swf'];
 
-  static $identifiers = array('mov', 'mp4', 'm4v', 'swf');
+    public function __construct(
+        string $filePath,
+        Helpers $helpers,
+    ) {
+        parent::__construct($filePath, $helpers);
+        $this->setExtendedData($filePath);
+    }
 
-  function __construct($file_path)
-  {
-    # create and store data required for this asset
-    parent::__construct($file_path);
-    # create and store additional data required for this asset
-    $this->set_extended_data($file_path);
-  }
+    /**
+     * Get the asset type.
+     */
+    #[\Override]
+    public static function getType(): string
+    {
+        return 'video';
+    }
 
-  function set_extended_data($file_path)
-  {
-    if (preg_match('/(\d+?)x(\d+?)\./', $this->file_name, $matches)) $dimensions = array('width' => $matches[1], 'height' => $matches[2]);
-    else $dimensions = array('width' => '', 'height' => '');
-    $this->data['width'] = $dimensions['width'];
-    $this->data['height'] = $dimensions['height'];
-  }
+    /**
+     * Set extended data for videos.
+     */
+    private function setExtendedData(string $filePath): void
+    {
+        if (preg_match('/(\d+?)x(\d+?)\./', $this->data['file_name'] ?? '', $matches)) {
+            $this->data['width'] = $matches[1];
+            $this->data['height'] = $matches[2];
+        } else {
+            $this->data['width'] = '';
+            $this->data['height'] = '';
+        }
+    }
 }

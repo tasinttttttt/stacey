@@ -1,230 +1,512 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Stacey\Core;
 
 use Stacey\Core\Asset\AssetFactory;
-use Stacey\Extension\Config;
 
+/**
+ * Utility helper class.
+ *
+ * Provides file system operations, URL parsing, and content manipulation.
+ */
 final class Helpers
 {
+    /** @var array<string, array<int, array<string, mixed>>> */
+    private static ?array $fileCache = null;
 
-  static $file_cache;
-
-  static function rglob($pattern, $flags = 0, $path = '')
-  {
-    if (!$path && ($dir = dirname($pattern)) != '.') {
-      if ($dir == '\\' || $dir == '/') $dir = '';
-      return self::rglob(basename($pattern), $flags, $dir . '/');
-    }
-    $paths = glob($path . '*', GLOB_ONLYDIR | GLOB_NOSORT);
-    $files = glob($path . $pattern, $flags);
-    if (is_array($paths) && is_array($files)) {
-      foreach ($paths as $p) $files = array_merge($files, self::rglob($pattern, $flags, $p . '/'));
-    }
-    return is_array($files) ? $files : array();
-  }
-
-  static function sort_by_length($a, $b)
-  {
-    if ($a == $b) return 0;
-    return (strlen($a) > strlen($b) ? -1 : 1);
-  }
-
-  static function file_path_to_url($file_path)
-  {
-    $url = preg_replace(array('/\d+?\./', '/(\.+\/)*content\/*/'), '', $file_path);
-    return $url ? $url : 'index';
-  }
-
-  static function url_to_file_path($url)
-  {
-    # if the url is empty, we're looking for the index page
-    $url = empty($url) ? 'index' : $url;
-
-    $file_path = Config::$content_folder;
-    # Split the url and recursively unclean the parts into folder names
-    $url_parts = explode('/', $url);
-
-    foreach ($url_parts as $u) {
-      $matches = null;
-      # Look for a folder at the current path that doesn't start with an underscore
-      if (!preg_match('/^_/', $u)) {
-        $matches = array_keys(Helpers::list_files($file_path, '/^(\d+?\.)?' . $u . '$/', true));
-      }
-      # No matches means a bad url
-      if (empty($matches)) {
-        return false;
-      } else {
-        $file_path .=  '/' . $matches[0];
-      }
-    }
-    return $file_path;
-  }
-
-  static function relative_path_to_absolute_url(string $relative_path): string
-  {
-    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
-    $host   = $_SERVER['HTTP_HOST'];
-    // Remove /content and any leading ./ or ../
-    $relative_path = preg_replace('/^\/content/', '', $relative_path);
-    $relative_path = preg_replace('/^(\.+\/)+/', '', $relative_path);
-    // Base path of the application (directory of index.php)
-    $base = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\');
-    return $scheme . $host . $base . '/' . ltrim($relative_path, '/');
-  }
-
-  static function isExternalUrl($url, $currentDomain = null)
-  {
-    if ($currentDomain === null && isset($_SERVER['HTTP_HOST'])) {
-      $currentDomain = $_SERVER['HTTP_HOST'];
+    /**
+     * Clear the file cache. Useful for testing.
+     */
+    public static function clearFileCache(): void
+    {
+        self::$fileCache = null;
     }
 
-    // If no scheme or starts with /, it's internal
-    if (!preg_match('~^(?:https?:)?//~i', $url)) {
-      return false;
+    /** @var array<string, mixed> */
+    private array $serverParams;
+
+    public function __construct(
+        private readonly Config $config,
+        array $serverParams = [],
+    ) {
+        $this->serverParams = $serverParams ?: $_SERVER;
     }
 
-    // Parse and compare domains
-    $parsed = parse_url($url);
-    $urlDomain = $parsed['host'] ?? '';
+    /**
+     * Recursive glob function.
+     *
+     * @return array<int, string>
+     */
+    public function rglob(string $pattern, int $flags = 0, string $path = ''): array
+    {
+        if ($path === '' && ($dir = dirname($pattern)) !== '.') {
+            if ($dir === '\\' || $dir === '/') {
+                $dir = '';
+            }
 
-    return strcasecmp($urlDomain, $currentDomain) !== 0;
-  }
+            return $this->rglob(basename($pattern), $flags, $dir . '/');
+        }
 
-  static function has_children($dir)
-  {
-    # check if this folder contains inner folders - if it does, then it is a category
-    $inner_folders = Helpers::list_files($dir, '/.*/', true);
-    return !empty($inner_folders);
-  }
+        /** @var array<int, string>|false $paths */
+        $paths = glob($path . '*', GLOB_ONLYDIR | GLOB_NOSORT);
+        /** @var array<int, string>|false $files */
+        $files = glob($path . $pattern, $flags);
 
-  static function file_cache($dir = false)
-  {
-    if (!self::$file_cache) {
-      # build file cache
-      self::build_file_cache(Config::$app_folder);
-      self::build_file_cache(Config::$content_folder);
-      self::build_file_cache(Config::$templates_folder);
+        if (! is_array($paths) || ! is_array($files)) {
+            return [];
+        }
+
+        foreach ($paths as $p) {
+            $files = array_merge($files, $this->rglob($pattern, $flags, $p . '/'));
+        }
+
+        return $files;
     }
-    if ($dir && !isset(self::$file_cache[$dir])) return array();
-    return $dir ? self::$file_cache[$dir] : self::$file_cache;
-  }
 
-  static function build_file_cache($dir = '.')
-  {
-    # build file cache
-    $files = glob($dir . '/*');
-    $files = is_array($files) ? $files : array();
-    foreach ($files as $path) {
-      $file = basename($path);
-      if (substr($file, 0, 1) == "." || $file == "_cache") continue;
-      if (is_dir($path)) self::build_file_cache($path);
-      if (is_readable($path)) {
-        self::$file_cache[$dir][] = array(
-          'path' => $path,
-          'file_name' => $file,
-          'is_folder' => (is_dir($path) ? 1 : 0),
-          'mtime' => filemtime($path)
+    /**
+     * Convert file path to URL.
+     */
+    public function filePathToUrl(string $filePath): string
+    {
+        $url = preg_replace(['/\d+?\./', '/.*content\//'], '', $filePath);
+
+        return $url ?: 'index';
+    }
+
+    /**
+     * Static wrapper for backward compatibility.
+     *
+     * @deprecated Use instance method filePathToUrl() instead
+     */
+    public static function file_path_to_url(string $filePath): string
+    {
+        // Use LegacyConfig paths for backward compatibility
+        $config = new Config(
+            rootFolder: \Stacey\Extension\Config::$root_folder,
+            contentFolder: \Stacey\Extension\Config::$content_folder,
+            templatesFolder: \Stacey\Extension\Config::$templates_folder,
+            cacheFolder: \Stacey\Extension\Config::$cache_folder,
         );
-      }
-    }
-  }
+        $helpers = new self($config);
 
-  static function list_files($dir, $regex, $folders_only = false)
-  {
-    $files = [];
-    foreach (self::file_cache($dir) as $file) {
-      # if file matches regex, continue
-      if (isset($file['file_name']) && preg_match($regex, $file['file_name'])) {
-        # if $folders_only is true and the file is not a folder, skip it
-        if ($folders_only && !$file['is_folder']) continue;
-        # otherwise, add file to results list
-        $files[$file['file_name']] = $file['path'];
-      }
+        return $helpers->filePathToUrl($filePath);
     }
 
-    # sort list in reverse-numeric order
-    natcasesort($files);
-    return $files;
-  }
+    /**
+     * Convert URL to file path.
+     */
+    public function urlToFilePath(string $url): ?string
+    {
+        $url = $url === '' || $url === '0' ? 'index' : $url;
+        $filePath = $this->config->contentFolder;
+        $urlParts = explode('/', $url);
 
-  static function modrewrite_parse($url)
-  {
-    # if the .htaccess file is missing or mod_rewrite is disabled, overwrite the clean urls
-    if (!file_exists(Config::$root_folder . '.htaccess') && preg_match('/\/$/', $url)) {
-      $url = '?/' . $url;
-    }
-    $url = preg_replace('/^(\?\/)?index\/$/', '', $url);
-    return $url;
-  }
+        foreach ($urlParts as $u) {
+            if (str_starts_with($u, '_')) {
+                continue;
+            }
 
-  static function relative_root_path($url = '')
-  {
-    global $current_page_file_path;
-    $link_path = '';
-    if (!preg_match('/index/', $current_page_file_path) && !preg_match('/\/\?\//', $_SERVER['REQUEST_URI'])) {
-      # split file path by slashes
-      $split_path = explode('/', $current_page_file_path);
-      # if the request uri is pointing at a document, drop another folder from the file path
-      if (preg_match('/\./', $_SERVER['REQUEST_URI'])) array_pop($split_path);
-      # add a ../ for each parent folder
-      for ($i = 2; $i < count($split_path); $i++) $link_path .= '../';
-    }
+            $pattern = '/^(\d+?\.)?' . preg_quote($u, '/') . '$/';
+            $matches = array_keys($this->listFiles($filePath, $pattern, true));
 
-    $link_path = empty($link_path) ? './' : $link_path;
+            if ($matches === []) {
+                return null;
+            }
 
-    return $link_path .= self::modrewrite_parse($url);
-  }
+            $filePath .= '/' . $matches[0];
+        }
 
-  static function last_modified($dir)
-  {
-    $last_modified = 0;
-    if (is_dir($dir)) {
-      foreach (Helpers::list_files($dir, '/.*/', false) as $file) {
-        if (!is_dir($file)) $last_modified = (filemtime($file) > $last_modified) ? filemtime($file) : $last_modified;
-      }
-    }
-    return $last_modified;
-  }
-
-  static function site_last_modified($dir = false)
-  {
-    if (!$dir) $dir = Config::$content_folder;
-    $last_updated = 0;
-    foreach (Helpers::list_files($dir, '/.*/', false) as $file) {
-      if (filemtime($file) > $last_updated) $last_updated = filemtime($file);
-      if (is_dir($file)) {
-        $child_updated = self::site_last_modified($file);
-        if ($child_updated > $last_updated) $last_updated = $child_updated;
-      }
-    }
-    return $last_updated;
-  }
-
-  static function translate_named_entities($string)
-  {
-    $mapping = array('&' => '&#38;', '&apos;' => '&#39;', '&minus;' => '&#45;', '&circ;' => '&#94;', '&tilde;' => '&#126;', '&Scaron;' => '&#138;', '&lsaquo;' => '&#139;', '&OElig;' => '&#140;', '&lsquo;' => '&#145;', '&rsquo;' => '&#146;', '&ldquo;' => '&#147;', '&rdquo;' => '&#148;', '&bull;' => '&#149;', '&ndash;' => '&#150;', '&mdash;' => '&#151;', '&tilde;' => '&#152;', '&trade;' => '&#153;', '&scaron;' => '&#154;', '&rsaquo;' => '&#155;', '&oelig;' => '&#156;', '&Yuml;' => '&#159;', '&yuml;' => '&#255;', '&OElig;' => '&#338;', '&oelig;' => '&#339;', '&Scaron;' => '&#352;', '&scaron;' => '&#353;', '&Yuml;' => '&#376;', '&fnof;' => '&#402;', '&circ;' => '&#710;', '&tilde;' => '&#732;', '&Alpha;' => '&#913;', '&Beta;' => '&#914;', '&Gamma;' => '&#915;', '&Delta;' => '&#916;', '&Epsilon;' => '&#917;', '&Zeta;' => '&#918;', '&Eta;' => '&#919;', '&Theta;' => '&#920;', '&Iota;' => '&#921;', '&Kappa;' => '&#922;', '&Lambda;' => '&#923;', '&Mu;' => '&#924;', '&Nu;' => '&#925;', '&Xi;' => '&#926;', '&Omicron;' => '&#927;', '&Pi;' => '&#928;', '&Rho;' => '&#929;', '&Sigma;' => '&#931;', '&Tau;' => '&#932;', '&Upsilon;' => '&#933;', '&Phi;' => '&#934;', '&Chi;' => '&#935;', '&Psi;' => '&#936;', '&Omega;' => '&#937;', '&alpha;' => '&#945;', '&beta;' => '&#946;', '&gamma;' => '&#947;', '&delta;' => '&#948;', '&epsilon;' => '&#949;', '&zeta;' => '&#950;', '&eta;' => '&#951;', '&theta;' => '&#952;', '&iota;' => '&#953;', '&kappa;' => '&#954;', '&lambda;' => '&#955;', '&mu;' => '&#956;', '&nu;' => '&#957;', '&xi;' => '&#958;', '&omicron;' => '&#959;', '&pi;' => '&#960;', '&rho;' => '&#961;', '&sigmaf;' => '&#962;', '&sigma;' => '&#963;', '&tau;' => '&#964;', '&upsilon;' => '&#965;', '&phi;' => '&#966;', '&chi;' => '&#967;', '&psi;' => '&#968;', '&omega;' => '&#969;', '&thetasym;' => '&#977;', '&upsih;' => '&#978;', '&piv;' => '&#982;', '&ensp;' => '&#8194;', '&emsp;' => '&#8195;', '&thinsp;' => '&#8201;', '&zwnj;' => '&#8204;', '&zwj;' => '&#8205;', '&lrm;' => '&#8206;', '&rlm;' => '&#8207;', '&ndash;' => '&#8211;', '&mdash;' => '&#8212;', '&lsquo;' => '&#8216;', '&rsquo;' => '&#8217;', '&sbquo;' => '&#8218;', '&ldquo;' => '&#8220;', '&rdquo;' => '&#8221;', '&bdquo;' => '&#8222;', '&dagger;' => '&#8224;', '&Dagger;' => '&#8225;', '&bull;' => '&#8226;', '&hellip;' => '&#8230;', '&permil;' => '&#8240;', '&prime;' => '&#8242;', '&Prime;' => '&#8243;', '&lsaquo;' => '&#8249;', '&rsaquo;' => '&#8250;', '&oline;' => '&#8254;', '&frasl;' => '&#8260;', '&euro;' => '&#8364;', '&image;' => '&#8465;', '&weierp;' => '&#8472;', '&real;' => '&#8476;', '&trade;' => '&#8482;', '&alefsym;' => '&#8501;', '&larr;' => '&#8592;', '&uarr;' => '&#8593;', '&rarr;' => '&#8594;', '&darr;' => '&#8595;', '&harr;' => '&#8596;', '&crarr;' => '&#8629;', '&lArr;' => '&#8656;', '&uArr;' => '&#8657;', '&rArr;' => '&#8658;', '&dArr;' => '&#8659;', '&hArr;' => '&#8660;', '&forall;' => '&#8704;', '&part;' => '&#8706;', '&exist;' => '&#8707;', '&empty;' => '&#8709;', '&nabla;' => '&#8711;', '&isin;' => '&#8712;', '&notin;' => '&#8713;', '&ni;' => '&#8715;', '&prod;' => '&#8719;', '&sum;' => '&#8721;', '&minus;' => '&#8722;', '&lowast;' => '&#8727;', '&radic;' => '&#8730;', '&prop;' => '&#8733;', '&infin;' => '&#8734;', '&ang;' => '&#8736;', '&and;' => '&#8743;', '&or;' => '&#8744;', '&cap;' => '&#8745;', '&cup;' => '&#8746;', '&int;' => '&#8747;', '&there4;' => '&#8756;', '&sim;' => '&#8764;', '&cong;' => '&#8773;', '&asymp;' => '&#8776;', '&ne;' => '&#8800;', '&equiv;' => '&#8801;', '&le;' => '&#8804;', '&ge;' => '&#8805;', '&sub;' => '&#8834;', '&sup;' => '&#8835;', '&nsub;' => '&#8836;', '&sube;' => '&#8838;', '&supe;' => '&#8839;', '&oplus;' => '&#8853;', '&otimes;' => '&#8855;', '&perp;' => '&#8869;', '&sdot;' => '&#8901;', '&lceil;' => '&#8968;', '&rceil;' => '&#8969;', '&lfloor;' => '&#8970;', '&rfloor;' => '&#8971;', '&lang;' => '&#9001;', '&rang;' => '&#9002;', '&loz;' => '&#9674;', '&spades;' => '&#9824;', '&clubs;' => '&#9827;', '&hearts;' => '&#9829;', '&diams;' => '&#9830;');
-    foreach (get_html_translation_table(HTML_ENTITIES, ENT_QUOTES) as $char => $entity) {
-      $mapping[$entity] = '&#' . ord($char) . ';';
-    }
-    return str_replace(array_keys($mapping), $mapping, $string);
-  }
-
-  static function toAssets($paths)
-  {
-    if (!is_array($paths)) {
-      return [];
+        return $filePath;
     }
 
-    return array_map(fn($path) => AssetFactory::get($path), $paths);
-  }
+    /**
+     * Static wrapper for backward compatibility.
+     *
+     * @deprecated Use instance method urlToFilePath() instead
+     */
+    public static function url_to_file_path(string $url): ?string
+    {
+        // Use LegacyConfig paths for backward compatibility
+        $config = new Config(
+            rootFolder: \Stacey\Extension\Config::$root_folder,
+            contentFolder: \Stacey\Extension\Config::$content_folder,
+            templatesFolder: \Stacey\Extension\Config::$templates_folder,
+            cacheFolder: \Stacey\Extension\Config::$cache_folder,
+        );
+        $helpers = new self($config);
 
-  static function toAsset($path)
-  {
-    if (!is_string($path)) {
-      return null;
+        return $helpers->urlToFilePath($url);
     }
 
-    return AssetFactory::get($path);
-  }
+    /**
+     * Convert relative path to absolute URL.
+     */
+    public function relativePathToAbsoluteUrl(string $relativePath): string
+    {
+        $scheme = ! empty($this->serverParams['HTTPS']) && $this->serverParams['HTTPS'] !== 'off'
+            ? 'https://'
+            : 'http://';
+        $host = $this->serverParams['HTTP_HOST'] ?? 'localhost';
+        $base = rtrim(dirname($this->serverParams['SCRIPT_NAME'] ?? ''), '/\\');
+
+        $relativePath = preg_replace(['/^\/content/', '/^(\.+\/)+/'], ['', ''], $relativePath);
+
+        if ($relativePath === null) {
+            $relativePath = '';
+        }
+
+        return $scheme . $host . $base . '/' . ltrim($relativePath, '/');
+    }
+
+    /**
+     * Check if URL is external.
+     */
+    public function isExternalUrl(string $url, ?string $currentDomain = null): bool
+    {
+        if ($currentDomain === null) {
+            $currentDomain = $this->serverParams['HTTP_HOST'] ?? '';
+        }
+
+        if (! preg_match('~^(?:https?:)?//~i', $url)) {
+            return false;
+        }
+
+        $parsed = parse_url($url);
+        $urlDomain = $parsed['host'] ?? '';
+
+        return strcasecmp($urlDomain, (string) $currentDomain) !== 0;
+    }
+
+    /**
+     * Check if directory has children.
+     */
+    public function hasChildren(string $dir): bool
+    {
+        $innerFolders = $this->listFiles($dir, '/.*/', true);
+
+        return $innerFolders !== [];
+    }
+
+    /**
+     * Get or build file cache.
+     *
+     * @return array<string, array<int, array<string, mixed>>>|array<int, array<string, mixed>>
+     */
+    public function fileCache(?string $dir = null): array
+    {
+        if (self::$fileCache === null) {
+            self::$fileCache = [];
+            $this->buildFileCache($this->config->appFolder);
+            $this->buildFileCache($this->config->contentFolder);
+            $this->buildFileCache($this->config->templatesFolder);
+        }
+
+        if ($dir !== null && ! isset(self::$fileCache[$dir])) {
+            return [];
+        }
+
+        return $dir !== null ? self::$fileCache[$dir] : self::$fileCache;
+    }
+
+    /**
+     * Build file cache for a directory.
+     */
+    private function buildFileCache(string $dir): void
+    {
+        /** @var array<int, string>|false $files */
+        $files = glob($dir . '/*');
+        $files = is_array($files) ? $files : [];
+
+        foreach ($files as $path) {
+            $file = basename($path);
+            if (str_starts_with($file, '.')) {
+                continue;
+            }
+            if ($file === '_cache') {
+                continue;
+            }
+
+            if (is_dir($path)) {
+                $this->buildFileCache($path);
+            }
+
+            if (is_readable($path)) {
+                self::$fileCache[$dir][] = [
+                    'path' => $path,
+                    'file_name' => $file,
+                    'is_folder' => is_dir($path) ? 1 : 0,
+                    'mtime' => filemtime($path),
+                ];
+            }
+        }
+    }
+
+    /**
+     * List files matching a pattern.
+     *
+     * @return array<string, string>
+     */
+    public function listFiles(string $dir, string $regex, bool $foldersOnly = false): array
+    {
+        $files = [];
+        $cache = $this->fileCache($dir);
+
+        foreach ($cache as $file) {
+            if (! isset($file['file_name'])) {
+                continue;
+            }
+
+            if (! preg_match($regex, (string) $file['file_name'])) {
+                continue;
+            }
+
+            if ($foldersOnly && empty($file['is_folder'])) {
+                continue;
+            }
+
+            $files[(string) $file['file_name']] = (string) $file['path'];
+        }
+
+        natcasesort($files);
+
+        return $files;
+    }
+
+    /**
+     * Static wrapper for backward compatibility.
+     *
+     * @deprecated Use instance method listFiles() instead
+     * @return array<string, string>
+     */
+    public static function list_files(string $dir, string $regex, bool $foldersOnly = false): array
+    {
+        // Use LegacyConfig paths for backward compatibility
+        $config = new Config(
+            rootFolder: \Stacey\Extension\Config::$root_folder,
+            contentFolder: \Stacey\Extension\Config::$content_folder,
+            templatesFolder: \Stacey\Extension\Config::$templates_folder,
+            cacheFolder: \Stacey\Extension\Config::$cache_folder,
+        );
+        $helpers = new self($config);
+
+        return $helpers->listFiles($dir, $regex, $foldersOnly);
+    }
+
+    /**
+     * Parse mod_rewrite style URLs.
+     */
+    public function modrewriteParse(string $url): string
+    {
+        $htaccessPath = $this->config->rootFolder . '.htaccess';
+
+        if (! file_exists($htaccessPath) && str_ends_with($url, '/')) {
+            $url = '?/' . $url;
+        }
+
+        $result = preg_replace('/^(\?\/)?index\/$/', '', $url);
+
+        return $result ?? '';
+    }
+
+    /**
+     * Static wrapper for backward compatibility.
+     *
+     * @deprecated Use instance method modrewriteParse() instead
+     */
+    public static function modrewrite_parse(string $url): string
+    {
+        // Use LegacyConfig paths for backward compatibility
+        $config = new Config(
+            rootFolder: \Stacey\Extension\Config::$root_folder,
+            contentFolder: \Stacey\Extension\Config::$content_folder,
+            templatesFolder: \Stacey\Extension\Config::$templates_folder,
+            cacheFolder: \Stacey\Extension\Config::$cache_folder,
+        );
+        $helpers = new self($config);
+
+        return $helpers->modrewriteParse($url);
+    }
+
+    /**
+     * Get relative root path.
+     */
+    public function relativeRootPath(string $url = ''): string
+    {
+        $requestUri = $this->serverParams['REQUEST_URI'] ?? '/';
+        $path = parse_url($requestUri, PHP_URL_PATH) ?? '/';
+        
+        // Count depth by splitting on /
+        $parts = array_filter(explode('/', trim($path, '/')));
+        $depth = count($parts);
+        
+        // For root or index, return ./ for relative paths
+        if ($depth === 0 || $parts[0] === 'index') {
+            $result = './' . $this->modrewriteParse($url);
+            return $result;
+        }
+        
+        // Build relative path
+        $linkPath = '';
+        for ($i = 0; $i < $depth; $i++) {
+            $linkPath .= '../';
+        }
+        
+        return $linkPath . $this->modrewriteParse($url);
+    }
+
+    /**
+     * Get last modified time for a directory.
+     */
+    public function lastModified(string $dir): int
+    {
+        $lastModified = 0;
+
+        if (! is_dir($dir)) {
+            return $lastModified;
+        }
+
+        foreach ($this->listFiles($dir, '/.*/', false) as $file) {
+            if (! is_dir($file)) {
+                $mtime = filemtime($file);
+                if ($mtime > $lastModified) {
+                    $lastModified = $mtime;
+                }
+            }
+        }
+
+        return $lastModified;
+    }
+
+    /**
+     * Get site-wide last modified time.
+     */
+    public function siteLastModified(?string $dir = null): int
+    {
+        $dir ??= $this->config->contentFolder;
+        $lastUpdated = 0;
+
+        foreach ($this->listFiles($dir, '/.*/', false) as $file) {
+            $mtime = filemtime($file);
+            if ($mtime > $lastUpdated) {
+                $lastUpdated = $mtime;
+            }
+
+            if (is_dir($file)) {
+                $childUpdated = $this->siteLastModified($file);
+                if ($childUpdated > $lastUpdated) {
+                    $lastUpdated = $childUpdated;
+                }
+            }
+        }
+
+        return $lastUpdated;
+    }
+
+    /**
+     * Translate named HTML entities to numbered entities.
+     */
+    public function translateNamedEntities(string $string): string
+    {
+        static $mapping = [
+            '&' => '&#38;', '&apos;' => '&#39;', '&minus;' => '&#45;',
+            '&circ;' => '&#94;', '&tilde;' => '&#126;', '&Scaron;' => '&#138;',
+            '&lsaquo;' => '&#139;', '&OElig;' => '&#140;', '&lsquo;' => '&#145;',
+            '&rsquo;' => '&#146;', '&ldquo;' => '&#147;', '&rdquo;' => '&#148;',
+            '&bull;' => '&#149;', '&ndash;' => '&#150;', '&mdash;' => '&#151;',
+            '&trade;' => '&#153;', '&scaron;' => '&#154;', '&rsaquo;' => '&#155;',
+            '&oelig;' => '&#156;', '&Yuml;' => '&#159;', '&yuml;' => '&#255;',
+            '&fnof;' => '&#402;', '&Alpha;' => '&#913;', '&Beta;' => '&#914;',
+            '&Gamma;' => '&#915;', '&Delta;' => '&#916;', '&Epsilon;' => '&#917;',
+            '&Zeta;' => '&#918;', '&Eta;' => '&#919;', '&Theta;' => '&#920;',
+            '&Iota;' => '&#921;', '&Kappa;' => '&#922;', '&Lambda;' => '&#923;',
+            '&Mu;' => '&#924;', '&Nu;' => '&#925;', '&Xi;' => '&#926;',
+            '&Omicron;' => '&#927;', '&Pi;' => '&#928;', '&Rho;' => '&#929;',
+            '&Sigma;' => '&#931;', '&Tau;' => '&#932;', '&Upsilon;' => '&#933;',
+            '&Phi;' => '&#934;', '&Chi;' => '&#935;', '&Psi;' => '&#936;',
+            '&Omega;' => '&#937;', '&alpha;' => '&#945;', '&beta;' => '&#946;',
+            '&gamma;' => '&#947;', '&delta;' => '&#948;', '&epsilon;' => '&#949;',
+            '&zeta;' => '&#950;', '&eta;' => '&#951;', '&theta;' => '&#952;',
+            '&iota;' => '&#953;', '&kappa;' => '&#954;', '&lambda;' => '&#955;',
+            '&mu;' => '&#956;', '&nu;' => '&#957;', '&xi;' => '&#958;',
+            '&omicron;' => '&#959;', '&pi;' => '&#960;', '&rho;' => '&#961;',
+            '&sigmaf;' => '&#962;', '&sigma;' => '&#963;', '&tau;' => '&#964;',
+            '&upsilon;' => '&#965;', '&phi;' => '&#966;', '&chi;' => '&#967;',
+            '&psi;' => '&#968;', '&omega;' => '&#969;', '&thetasym;' => '&#977;',
+            '&upsih;' => '&#978;', '&piv;' => '&#982;', '&ensp;' => '&#8194;',
+            '&emsp;' => '&#8195;', '&thinsp;' => '&#8201;', '&zwnj;' => '&#8204;',
+            '&zwj;' => '&#8205;', '&lrm;' => '&#8206;', '&rlm;' => '&#8207;',
+        ];
+
+        foreach (get_html_translation_table(HTML_ENTITIES, ENT_QUOTES) as $char => $entity) {
+            $mapping[$entity] = '&#' . ord($char) . ';';
+        }
+
+        return str_replace(array_keys($mapping), $mapping, $string);
+    }
+
+    /**
+     * Convert paths to asset objects.
+     *
+     * @param array<int, string>|null $paths
+     * @return array<int, mixed>
+     */
+    public function toAssets(?array $paths): array
+    {
+        if (! is_array($paths)) {
+            return [];
+        }
+
+        $result = array_filter(
+            array_map(
+                fn ($path) => is_string($path) ? AssetFactory::get($path) : [],
+                $paths
+            )
+        );
+
+        // Recursively convert children of each result
+        foreach ($result as $key => $item) {
+            if (is_array($item) && isset($item['children']) && is_array($item['children'])) {
+                $result[$key]['children'] = $this->toAssets($item['children']);
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Static wrapper for backward compatibility.
+     *
+     * @deprecated Use instance method toAssets() instead
+     * @param array<int, string>|null $paths
+     * @return array<int, mixed>
+     */
+    public static function to_assets(?array $paths): array
+    {
+        // Use LegacyConfig paths for backward compatibility
+        $config = new Config(
+            rootFolder: \Stacey\Extension\Config::$root_folder,
+            contentFolder: \Stacey\Extension\Config::$content_folder,
+            templatesFolder: \Stacey\Extension\Config::$templates_folder,
+            cacheFolder: \Stacey\Extension\Config::$cache_folder,
+        );
+        $helpers = new self($config);
+
+        return $helpers->toAssets($paths);
+    }
+
+    /**
+     * Convert a path to an asset object.
+     *
+     * @return mixed
+     */
+    public function toAsset(?string $path): mixed
+    {
+        if (! is_string($path)) {
+            return null;
+        }
+
+        return AssetFactory::get($path);
+    }
 }

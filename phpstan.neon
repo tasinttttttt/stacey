@@ -1,0 +1,16 @@
+parameters:
+    level: 9
+    paths:
+        - app
+        - extension
+        - tests
+    excludePaths:
+        - app/parsers/slir
+        - app/lib
+    checkMissingIterableValueType: false
+    checkExplicitMixed: false
+    reportMaybesInMethodSignatures: true
+    reportStaticMethodSignatures: true
+    ignoreErrors:
+        # Ignore dynamic property access patterns
+        - '#Access to an undefined property#'

@@ -1,94 +1,144 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Stacey\Core\Asset;
 
-use Stacey\Core\Asset\Asset;
-use Stacey\Core\Asset\Page;
 use Stacey\Core\Helpers;
 use Stacey\Core\PageData;
 
+/**
+ * Factory for creating asset instances.
+ *
+ * Replaces the old static factory with a proper instance-based approach.
+ */
 final class AssetFactory
 {
+    /** @var array<string, mixed> */
+    private static array $store = [];
 
-  static $store;
-  static $asset_subclasses = array();
+    /** @var array<string, array<int, string>> */
+    private static array $assetSubclasses = [];
 
-  static function extract_page_data($asset_path)
-  {
-    # separate the filename and the parent page path
-    $path = explode('/', $asset_path);
-    $file_name = array_pop($path);
-    $page_path = implode('/', $path);
+    private static bool $initialized = false;
 
-    # return any page data scoped against the asset filename
-    $page_data = self::get($page_path);
-
-    return isset($page_data[strtolower($file_name)]) ? $page_data[strtolower($file_name)] : array();
-  }
-
-  static function create($file_path)
-  {
-    #
-    # a little bit of magic here to find any classes which extend 'Asset'
-    #
-    self::get_asset_subclasses();
-
-    # if the file path isn't passed through as a string, return an empty data array
-    $data = [];
-    if (!is_string($file_path)) {
-      return $data;
-    }
-
-    # split by file extension
-    preg_match('/\.([\w\d]+?)$/', $file_path, $split_path);
-
-    if (isset($split_path[1]) && !is_dir($file_path)) {
-      # set the default asset type
-      $asset = Asset::class;
-      # loop through our asset_subclasses to see if this filetype should be handled in a special way
-      foreach (self::$asset_subclasses as $asset_type => $identifiers) {
-        # if a match is found, set $asset to be the name of the matching class
-        if (in_array(strtolower($split_path[1]), $identifiers)) {
-          $asset = $asset_type;
+    /**
+     * Initialize asset subclass registry.
+     */
+    private static function initialize(): void
+    {
+        if (self::$initialized) {
+            return;
         }
-      }
 
-      # extract any page data scoped against the asset filename
-      $page_data = self::extract_page_data($file_path);
-      # create a new asset and return its data
-      $asset = new $asset($file_path);
-      # Parse the page data
-      $page_data = PageData::parse_vars($page_data, true, "");
-      # Merge original data with associated page data
-      $merged_data = array_merge($asset->data, $page_data);
-      return $merged_data;
-    } else {
-      # new page
-      $page = new Page(Helpers::file_path_to_url($file_path));
-      return $page->data;
+        // Explicitly register asset types instead of using eval()
+        self::$assetSubclasses = [
+            Image::class => ['gif', 'jpg', 'jpeg', 'png'],
+            Video::class => ['mov', 'mp4', 'm4v', 'webm', 'ogv'],
+            Html::class => ['html', 'htm'],
+        ];
+
+        self::$initialized = true;
     }
-  }
 
-  static function get($key)
-  {
-    # if object doesn't exist, create it
-    if (!isset(self::$store[$key])) {
-      self::$store[$key] = self::create($key);
+    /**
+     * Extract page data associated with an asset.
+     *
+     * @return array<string, mixed>
+     */
+    private static function extractPageData(string $assetPath): array
+    {
+        $path = explode('/', $assetPath);
+        $fileName = array_pop($path);
+        $pagePath = implode('/', $path);
+
+        $pageData = self::get($pagePath);
+
+        return $pageData[strtolower($fileName)] ?? [];
     }
-    return self::$store[$key];
-  }
 
-  static function get_asset_subclasses()
-  {
-    # if asset_subclasses hasn't been filled yet
-    if (empty(self::$asset_subclasses)) {
-      # loop through each declared class
-      foreach (get_declared_classes() as $class) {
-        # if the class extends 'Asset', then push it into our asset_subclasses hash
-        if (strtolower(get_parent_class($class)) == 'asset') {
-          self::$asset_subclasses[$class] = eval('return ' . $class . '::$identifiers;');
+    /**
+     * Create an asset instance.
+     *
+     * @return array<string, mixed>
+     */
+    private static function create(string $filePath): array
+    {
+        self::initialize();
+
+        if (! is_string($filePath)) {
+            return [];
         }
-      }
+
+        // Check for file extension
+        if (! preg_match('/\.([\w\d]+)$/', $filePath, $matches)) {
+            // No extension - treat as page
+            return self::createPage($filePath);
+        }
+
+        $extension = strtolower($matches[1]);
+
+        // Skip directories
+        if (is_dir($filePath)) {
+            return self::createPage($filePath);
+        }
+
+        // Find matching asset type
+        $assetClass = Asset::class;
+        foreach (self::$assetSubclasses as $className => $identifiers) {
+            if (in_array($extension, $identifiers, true)) {
+                $assetClass = $className;
+
+                break;
+            }
+        }
+
+        // Create asset and merge with page data
+        $helpers = new Helpers(new \Stacey\Core\Config());
+        /** @var Asset $asset */
+        $asset = new $assetClass($filePath, $helpers);
+        $pageData = self::extractPageData($filePath);
+        $pageData = PageData::parseVars($pageData, true, '');
+
+        return array_merge($asset->getData(), $pageData);
     }
-  }
+
+    /**
+     * Create a page asset.
+     *
+     * @return array<string, mixed>
+     */
+    private static function createPage(string $filePath): array
+    {
+        try {
+            $page = new Page(Helpers::file_path_to_url($filePath));
+
+            return $page->data;
+        } catch (\RuntimeException) {
+            // Page not found (404)
+            return [];
+        }
+    }
+
+    /**
+     * Get an asset from cache or create new.
+     *
+     * @return array<string, mixed>
+     */
+    public static function get(string $key): array
+    {
+        if (! isset(self::$store[$key])) {
+            self::$store[$key] = self::create($key);
+        }
+
+        return self::$store[$key];
+    }
+
+    /**
+     * Clear the asset cache.
+     */
+    public static function clearCache(): void
+    {
+        self::$store = [];
+    }
 }

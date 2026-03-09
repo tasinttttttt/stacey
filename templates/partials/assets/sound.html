@@ -1,0 +1,10 @@
+{% for sound in page.sound %}
+<audio id='{{ sound.file_name|raw }}' class='audio' 
+  controls
+  preload='auto'
+  poster='{{ page.root_path }}/public/images/fbShare1230.jpg'>
+   
+    <source src='{{ page.file_path|absolute }}/{{sound.file_name|raw}}' type='audio/mp3' />
+    
+</audio>
+{% endfor %}

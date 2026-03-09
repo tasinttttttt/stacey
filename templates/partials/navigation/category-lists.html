@@ -1,21 +1,15 @@
-{% for child in page.root %} {% if child.children %}
-<ul class="projects">
-  {% for child in child.children|toAssets %}
-  <li class="col seven {{ child.id }}">
-    <p class="date col one">{{ child.date | date("Y, M-") }}</p>
-    <h2 class="col five">
-      {% if child.thumb %}
-      <img
-        src="{{ child.thumb.url }}"
-        width="{{ child.thumb.width }}"
-        height="{{ child.thumb.height }}"
-        class="project-thumb"
-        alt=""
-      />
-      {% endif %}
-      <a href="{{ child.url }}">{{ child.title }}</a>
-    </h2>
-  </li>
-  {% endfor %}
-</ul>
-{% endif %} {% endfor %}
+{% for child in page.root %}
+  {% if child.children %}
+    <ul id="projects">
+    {% for child in child.children %}
+        <li class="project" data-id="{{ child.id }}" data-title="{{ child.meta.title }}" data-date="{{ child.meta.date }}" data-status="{{ child.meta.status }}" {% if child.thumb.url %} data-thumbnail="{{ child.thumb.url }}" data-thumbnail-width="{{ child.thumb.width }}" data-thumbnail-height="{{ child.thumb.height }}"{% endif %}>
+          <a href="{{ child.url }}" title="{{ child.meta.title }}">
+            <div class="previewText">{{ child.meta.title|raw }}</div>
+            <br/>
+            <div class="previewDetail">{{ child.meta.status }}, {{ child.meta.date }}</div>
+            </a>
+      </li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+{% endfor %}

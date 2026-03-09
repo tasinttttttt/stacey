@@ -79,7 +79,11 @@ require_once $vendorDir . '/autoload.php';
 
 use Stacey\Core\Config;
 use Stacey\Core\Container;
+use Stacey\Core\PageData;
 use Stacey\Core\Stacey;
+
+// Set global server params for is_current calculation in child pages
+PageData::setGlobalServerParams($_SERVER);
 
 // Initialize configuration
 $config = new Config(

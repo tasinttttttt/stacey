@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>{{ page.title }} - Navigation Test</title>
+    <link rel="stylesheet" href="{{ page.root_path }}public/css/style.css">
+    <style>
+        nav { margin: 20px 0; }
+        nav a { margin-right: 15px; text-decoration: none; }
+        nav a.current { font-weight: bold; color: red; }
+        .debug-info { background: #f0f0f0; padding: 10px; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div id="wrapper">
+        <nav id="main-nav">
+            {% for item in page.root %}
+                <a href="{{ item.url }}" class="{% if item.is_current %}current{% endif %}">
+                    {{ item.page_name }}
+                    {% if item.is_current %}(current){% endif %}
+                </a>
+            {% endfor %}
+        </nav>
+        
+        <h1>{{ page.title }}</h1>
+        
+        <div class="debug-info">
+            <h3>Debug Info:</h3>
+            <p>Current page permalink: {{ page.permalink }}</p>
+            <p>Current page is_current: {{ page.is_current ? 'true' : 'false' }}</p>
+            <p>Request URI: {{ page.request_uri|default('not set') }}</p>
+        </div>
+        
+        <div class="content">
+            {{ page.content|raw }}
+        </div>
+    </div>
+</body>
+</html>

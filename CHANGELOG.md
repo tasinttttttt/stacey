@@ -8,6 +8,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **PageData is_current tests** - Comprehensive test suite for `PageData::isCurrent()` method
+  - Created `tests/Unit/PageDataIsCurrentTest.php` with 13 test cases
+  - Tests root index page detection (`is_current` true when permalink is 'index' and REQUEST_URI is '/')
+  - Tests matching permalink detection for regular pages
+  - Tests nested permalink handling (e.g., 'projects/my-project')
+  - Tests base URL with path segments (e.g., 'localhost/subdir')
+  - Documents edge cases: empty permalinks, protocol URLs, trailing slashes
+  - **Key findings**:
+    - Empty string permalink on root page is considered current (returns true)
+    - URLs with protocols (e.g., 'https://example.com') leave '//' in basePath
+    - Trailing slashes in REQUEST_URI require exact matching
+
+### Fixed
+- **Fixed `is_current` functionality for navigation templates** - The `is_current` property now works correctly when iterating through pages in navigation menus
+  - **Root cause**: Child pages created via `AssetFactory` didn't have access to server params (REQUEST_URI), so `is_current` was always false for navigation items
+  - **Solution**:
+    - Added `PageData::setGlobalServerParams()` static method to preserve server params globally
+    - Updated `PageData::create()` to use global server params when creating child pages
+    - Modified `isCurrent()` comparison to use `urlPath` (clean URLs) instead of `permalink` (which has `?/` prefix from mod_rewrite)
+    - Fixed baseUrl to use computed `$page->base_url` instead of `$page->data['base_url']` (which was from YAML content)
+  - **Files changed**: `app/PageData.php`, `index.php`
+  - **New test suite**: `tests/Integration/IsCurrentTemplateTest.php` with 7 integration tests verifying navigation highlighting works correctly
+  - **Test fixtures created**:
+    - `tests/Fixtures/templates/navigation-test.html` - Template with navigation menu using `is_current`
+    - `tests/Fixtures/templates/home-nav.html`, `about-nav.html`, `projects-nav.html` - Page templates
+    - `tests/Fixtures/content/1.home-nav/`, `2.about-nav/`, `3.projects-nav/` - Test content pages
+
+- **Fixed page slug to use folder name instead of YAML** - The `slug` and `page_name` properties now correctly derive from the folder name (without number prefix) rather than YAML data
+  - **Root cause**: `page_name` calculation was using `$slug` variable from `$page->data['slug']` (YAML) instead of `$page->slug` (computed from folder name)
+  - **Solution**: Changed line 216 in `app/PageData.php` to use `$page->slug` instead of `$slug`
+  - **Example**: Folder `1.home-nav/` → slug: `home-nav`, page_name: `Home Nav`
+  - **Note**: YAML `slug:` field is now ignored - folder name always takes precedence
+  - **Files changed**: `app/PageData.php`
+
+### Added
 - Coding agent guidelines in `AGENTS.md` - 2025-03-07
 - Issues tracking file `ISSUES.md` - 2025-03-07
 - This CHANGELOG.md - 2025-03-07

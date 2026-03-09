@@ -42,19 +42,19 @@ abstract class Asset
     protected function constructLinkPath(string $filePath): string
     {
         $rootPath = $this->helpers->relativeRootPath();
-        
-        // If filePath starts with root folder, strip it to get relative path
+
+        // Get the project root to strip absolute path
+        $projectRoot = getcwd() ?: dirname(__DIR__, 2);
         $relativePath = $filePath;
-        // Access root folder through reflection or use a default approach
-        // Since we can't easily access Config from helpers, we'll use a different approach
-        // Strip any absolute path up to 'content/' to get relative path
-        if (str_contains($filePath, 'content/')) {
-            $relativePath = substr($filePath, strpos($filePath, 'content/') + 8);
+
+        // Strip project root if present
+        if (str_starts_with($filePath, $projectRoot)) {
+            $relativePath = substr($filePath, strlen($projectRoot));
         }
-        
+
         // Remove leading slash if present
         $relativePath = ltrim($relativePath, '/');
-        
+
         // Prepend relative root path
         return $rootPath . $relativePath;
     }

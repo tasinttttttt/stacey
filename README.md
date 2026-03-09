@@ -33,8 +33,13 @@ Install Stacey as a Composer dependency in your project:
 composer require tasinttttttt/stacey
 ```
 
+After installation, run the setup script to create the directory structure:
+
+```bash
+vendor/bin/stacey-setup
+```
+
 This will:
-- Install Stacey and all dependencies
 - Create `content/`, `templates/`, `public/`, and `app/_cache/` directories
 - Copy `index.php` to your project root
 

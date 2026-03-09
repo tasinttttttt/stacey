@@ -266,7 +266,7 @@ final class Helpers
      * @deprecated Use instance method listFiles() instead
      * @return array<string, string>
      */
-    public static function list_files(string $dir, string $regex, bool $foldersOnly = false, Config $config): array
+    public static function list_files(string $dir, string $regex, Config $config, bool $foldersOnly = false): array
     {
         $helpers = new self($config);
 

@@ -120,7 +120,7 @@ final class Page
      */
     public static function templateName(string $filePath, Config $config): ?string
     {
-        $txts = array_keys(Helpers::list_files($filePath, '/\.(yml|txt)/', false, $config));
+        $txts = array_keys(Helpers::list_files($filePath, '/\.(yml|txt)/', $config, false));
 
         return $txts === [] ? null : preg_replace('/\.(yml|txt)/', '', $txts[0]);
     }

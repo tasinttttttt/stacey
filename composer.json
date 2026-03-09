@@ -1,7 +1,17 @@
 {
-  "name": "kolber/stacey",
+  "name": "tasinttttttt/stacey",
   "description": "A file-based content management system",
-  "type": "project",
+  "authors": [
+	  {
+		  "name": "Anthony Kolber"
+	  },
+	  {
+		  "name": "Tayeb B.",
+		  "homepage": "https://tayeb.dev",
+		  "role": "Developer"
+	  }
+  ],
+  "type": "library",
   "license": "MIT",
   "minimum-stability": "stable",
   "require": {
@@ -16,7 +26,8 @@
     "phpstan/phpstan": "^1.11",
     "phpstan/phpstan-strict-rules": "^1.6",
     "friendsofphp/php-cs-fixer": "^3.60",
-    "rector/rector": "^1.2"
+    "rector/rector": "^1.2",
+    "composer/composer": "^2.0"
   },
   "autoload": {
     "psr-4": {
@@ -24,7 +35,8 @@
       "Stacey\\Core\\Asset\\": "app/asset/",
       "Stacey\\Core\\Parser\\": "app/parsers/",
       "Stacey\\Core\\Lib\\": "app/lib/",
-      "Stacey\\Extension\\": "extension/"
+      "Stacey\\Extension\\": "extension/",
+      "Stacey\\Composer\\": "composer/"
     }
   },
   "autoload-dev": {
@@ -43,7 +55,9 @@
       "@test",
       "@analyse",
       "@fix-dry"
-    ]
+    ],
+    "post-install-cmd": "Stacey\\Composer\\Setup::postInstall",
+    "post-update-cmd": "Stacey\\Composer\\Setup::postUpdate"
   },
   "config": {
     "sort-packages": true,

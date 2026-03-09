@@ -45,8 +45,11 @@ abstract class Asset
         
         // If filePath starts with root folder, strip it to get relative path
         $relativePath = $filePath;
-        if (isset(\Stacey\Extension\Config::$root_folder) && str_starts_with($filePath, \Stacey\Extension\Config::$root_folder)) {
-            $relativePath = substr($filePath, strlen(\Stacey\Extension\Config::$root_folder));
+        // Access root folder through reflection or use a default approach
+        // Since we can't easily access Config from helpers, we'll use a different approach
+        // Strip any absolute path up to 'content/' to get relative path
+        if (str_contains($filePath, 'content/')) {
+            $relativePath = substr($filePath, strpos($filePath, 'content/') + 8);
         }
         
         // Remove leading slash if present

@@ -70,7 +70,7 @@ final readonly class Cache
     {
         $this->deleteOldCaches($filePath, $templateFile);
 
-        $page = new Page($route, false, $this->config);
+        $page = new Page($route, $this->config, false);
 
         // Basic Authentication
         if (isset($page->data['password_protect'])) {

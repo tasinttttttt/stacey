@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Page Loop Test</title>
+</head>
+<body>
+    <h1>Page Loop Test</h1>
+    <div class="page-list">
+        {% for child in page.root %}
+        <div class="page-item">
+            <h2>{{ child.title }}</h2>
+            {% if child.thumb %}
+            <img src="{{ child.thumb.url }}" alt="{{ child.image_caption }}" class="image-caption">
+            <p class="caption">{{ child.image_caption }}</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html>

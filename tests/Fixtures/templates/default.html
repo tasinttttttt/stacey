@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>{{ page.site_name }}'s Portfolio</title>
+    <meta name="description" content="{{ page.site_description }}">
+    <link rel="stylesheet" href="{{ page.root_path }}public/css/style.css">
+</head>
+<body>
+    <div id="wrapper">
+        <h1>{{ page.title }}</h1>
+        <div class="content">
+            {{ page.content|raw }}
+        </div>
+        {% if page.images %}
+        <div class="images">
+            {% for image in page.images %}
+            <img src="{{ image.url }}" alt="{{ image.file_name }}">
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>

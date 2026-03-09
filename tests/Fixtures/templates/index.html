@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ page.title }}</title>
+    <link rel="stylesheet" href="{{ page.root_path }}public/css/style.css">
+</head>
+<body>
+    <div id="wrapper">
+        <header id="navigation">
+            <h2 id="sitetitle"></h2>
+            <h2 id="sitework"><a href="{{ page.root_path }}work" >Work</a></h2>
+            <h2 id="siteinfo">
+            <a href="{{ page.root_path }}about" >About</a>
+            </h2>
+        </header>
+
+<article>
+    <h1>{{ page.title }}</h1>
+    <p>{{ page.description }}</p>
+    <div class="content">
+                {{ page.content|raw }}
+            </div>
+</article>
+
+</div>
+<!-- wrapper -->
+
+<footer>
+    <p>&copy; {{ "now"|date("Y") }}</p>
+</footer>
+
+</body>
+</html>

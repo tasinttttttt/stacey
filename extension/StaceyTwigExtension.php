@@ -6,6 +6,7 @@ namespace Stacey\Extension;
 
 use Stacey\Core\Asset\AssetFactory;
 use Stacey\Core\Cache;
+use Stacey\Core\Config;
 use Stacey\Core\Helpers;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
@@ -14,6 +15,11 @@ use Twig\TwigFunction;
 final class StaceyTwigExtension extends AbstractExtension
 {
     public $sortby_value;
+
+    public function __construct(
+        private Config $config = new Config(),
+    ) {
+    }
 
     public function getName()
     {
@@ -131,16 +137,16 @@ final class StaceyTwigExtension extends AbstractExtension
     public function get($url, $current_url = '')
     {
         # strip leading & trailing slashes from $url
-        $url = preg_replace(['/^\//', '/\/$/'], '', $url);
+        $url = preg_replace(['/^\//', '/$/'], '', $url);
         # if the current url is passed, then we use it to build up a relative context
-        $url = preg_replace('/^\.\/\?/', '', $current_url) . $url;
+        $url = preg_replace('/^\.\/?/', '', $current_url) . $url;
         # strip leading '../'s from the url if any exists
         $url = preg_replace('/^((\.+)*\/)*/', '', $url);
         # turn route into file path
-        $file_path = Helpers::url_to_file_path($url);
+        $file_path = Helpers::url_to_file_path($url, $this->config);
         # check for children of the index page
         if (! $file_path) {
-            return $file_path = Helpers::url_to_file_path('index/' . $url);
+            return $file_path = Helpers::url_to_file_path('index/' . $url, $this->config);
         }
 
         # create & return the new page object
@@ -156,7 +162,7 @@ final class StaceyTwigExtension extends AbstractExtension
         $root_path = preg_replace('/content\/.*/', '', $img_path);
         $clean_path = preg_replace('/^(\.+\/)*content/', '', $img_path);
 
-        if (! file_exists(Config::$root_folder . '.htaccess')) {
+        if (! file_exists($this->config->rootFolder . '.htaccess')) {
             return $root_path . 'app/parsers/slir/index.php?w=' . $max_width . '&h=' . $max_height . '&c=' . $ratio . '&q=' . $quality . '&i=' . $clean_path;
         } else {
             return $root_path . 'render/w' . $max_width . '-h' . $max_height . '-c' . $ratio . '-q' . $quality . $clean_path;

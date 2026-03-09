@@ -80,15 +80,8 @@ final class Helpers
      *
      * @deprecated Use instance method filePathToUrl() instead
      */
-    public static function file_path_to_url(string $filePath): string
+    public static function file_path_to_url(string $filePath, Config $config): string
     {
-        // Use LegacyConfig paths for backward compatibility
-        $config = new Config(
-            rootFolder: \Stacey\Extension\Config::$root_folder,
-            contentFolder: \Stacey\Extension\Config::$content_folder,
-            templatesFolder: \Stacey\Extension\Config::$templates_folder,
-            cacheFolder: \Stacey\Extension\Config::$cache_folder,
-        );
         $helpers = new self($config);
 
         return $helpers->filePathToUrl($filePath);
@@ -126,15 +119,8 @@ final class Helpers
      *
      * @deprecated Use instance method urlToFilePath() instead
      */
-    public static function url_to_file_path(string $url): ?string
+    public static function url_to_file_path(string $url, Config $config): ?string
     {
-        // Use LegacyConfig paths for backward compatibility
-        $config = new Config(
-            rootFolder: \Stacey\Extension\Config::$root_folder,
-            contentFolder: \Stacey\Extension\Config::$content_folder,
-            templatesFolder: \Stacey\Extension\Config::$templates_folder,
-            cacheFolder: \Stacey\Extension\Config::$cache_folder,
-        );
         $helpers = new self($config);
 
         return $helpers->urlToFilePath($url);
@@ -280,15 +266,8 @@ final class Helpers
      * @deprecated Use instance method listFiles() instead
      * @return array<string, string>
      */
-    public static function list_files(string $dir, string $regex, bool $foldersOnly = false): array
+    public static function list_files(string $dir, string $regex, bool $foldersOnly = false, Config $config): array
     {
-        // Use LegacyConfig paths for backward compatibility
-        $config = new Config(
-            rootFolder: \Stacey\Extension\Config::$root_folder,
-            contentFolder: \Stacey\Extension\Config::$content_folder,
-            templatesFolder: \Stacey\Extension\Config::$templates_folder,
-            cacheFolder: \Stacey\Extension\Config::$cache_folder,
-        );
         $helpers = new self($config);
 
         return $helpers->listFiles($dir, $regex, $foldersOnly);
@@ -315,15 +294,8 @@ final class Helpers
      *
      * @deprecated Use instance method modrewriteParse() instead
      */
-    public static function modrewrite_parse(string $url): string
+    public static function modrewrite_parse(string $url, Config $config): string
     {
-        // Use LegacyConfig paths for backward compatibility
-        $config = new Config(
-            rootFolder: \Stacey\Extension\Config::$root_folder,
-            contentFolder: \Stacey\Extension\Config::$content_folder,
-            templatesFolder: \Stacey\Extension\Config::$templates_folder,
-            cacheFolder: \Stacey\Extension\Config::$cache_folder,
-        );
         $helpers = new self($config);
 
         return $helpers->modrewriteParse($url);
@@ -482,15 +454,8 @@ final class Helpers
      * @param array<int, string>|null $paths
      * @return array<int, mixed>
      */
-    public static function to_assets(?array $paths): array
+    public static function to_assets(?array $paths, Config $config): array
     {
-        // Use LegacyConfig paths for backward compatibility
-        $config = new Config(
-            rootFolder: \Stacey\Extension\Config::$root_folder,
-            contentFolder: \Stacey\Extension\Config::$content_folder,
-            templatesFolder: \Stacey\Extension\Config::$templates_folder,
-            cacheFolder: \Stacey\Extension\Config::$cache_folder,
-        );
         $helpers = new self($config);
 
         return $helpers->toAssets($paths);

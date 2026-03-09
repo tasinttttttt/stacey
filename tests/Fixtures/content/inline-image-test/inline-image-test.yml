@@ -1,0 +1,5 @@
+title: Inline Image Test
+content: |
+  Here is an inline image:
+  
+  ![A beautiful test image showing the caption feature](01.jpg)

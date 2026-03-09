@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Stacey\Core\Asset;
 
+use Stacey\Core\Config;
 use Stacey\Core\Helpers;
 use Stacey\Core\PageData;
 
@@ -21,6 +22,28 @@ final class AssetFactory
     private static array $assetSubclasses = [];
 
     private static bool $initialized = false;
+
+    private static ?Config $config = null;
+
+    /**
+     * Set the Config instance for the factory.
+     */
+    public static function setConfig(Config $config): void
+    {
+        self::$config = $config;
+    }
+
+    /**
+     * Get the Config instance, creating a default if not set.
+     */
+    private static function getConfig(): Config
+    {
+        if (self::$config === null) {
+            self::$config = new Config();
+        }
+
+        return self::$config;
+    }
 
     /**
      * Initialize asset subclass registry.
@@ -94,11 +117,12 @@ final class AssetFactory
         }
 
         // Create asset and merge with page data
-        $helpers = new Helpers(new \Stacey\Core\Config());
+        $config = self::getConfig();
+        $helpers = new Helpers($config);
         /** @var Asset $asset */
         $asset = new $assetClass($filePath, $helpers);
         $pageData = self::extractPageData($filePath);
-        $pageData = PageData::parseVars($pageData, true, '');
+        $pageData = PageData::parseVars($pageData, true, '', $config);
 
         return array_merge($asset->getData(), $pageData);
     }
@@ -111,7 +135,8 @@ final class AssetFactory
     private static function createPage(string $filePath): array
     {
         try {
-            $page = new Page(Helpers::file_path_to_url($filePath));
+            $config = self::getConfig();
+            $page = new Page(Helpers::file_path_to_url($filePath, $config), $config);
 
             return $page->data;
         } catch (\RuntimeException) {

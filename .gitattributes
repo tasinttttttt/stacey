@@ -1,0 +1,17 @@
+# Exclude from distribution (for composer install --prefer-dist)
+content/ export-ignore
+app/_cache/ export-ignore
+tests/ export-ignore
+composer/ export-ignore
+plan/ export-ignore
+.gitignore export-ignore
+.gitattributes export-ignore
+.php-cs-fixer.dist.php export-ignore
+phpstan.neon export-ignore
+phpunit.xml export-ignore
+rector.php export-ignore
+ISSUES.md export-ignore
+CHANGELOG.md export-ignore
+AGENTS.md export-ignore
+composer.lock export-ignore
+server.log export-ignore

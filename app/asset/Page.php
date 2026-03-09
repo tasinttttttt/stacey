@@ -9,7 +9,6 @@ use Stacey\Core\Helpers;
 use Stacey\Core\Lib\JSMin;
 use Stacey\Core\PageData;
 use Stacey\Core\Parser\TemplateParser;
-use Stacey\Extension\Config as LegacyConfig;
 
 /**
  * Page asset representing a content page.
@@ -27,22 +26,21 @@ final class Page
 
     public function __construct(
         string $url,
+        private readonly Config $config,
         private readonly bool $content = false,
-        private readonly ?Config $config = null,
     ) {
-        // For now, use legacy helpers during migration
-        $this->filePath = Helpers::url_to_file_path($url);
+        $this->filePath = Helpers::url_to_file_path($url, $config);
         $this->urlPath = $url;
 
         if ($this->filePath === null) {
             throw new \RuntimeException('404');
         }
 
-        $this->templateName = self::templateName($this->filePath) ?? '';
-        $this->templateFile = self::templateFile($this->templateName);
+        $this->templateName = self::templateName($this->filePath, $config) ?? '';
+        $this->templateFile = self::templateFile($this->templateName, $config);
         $this->templateType = self::templateType($this->templateFile);
 
-        PageData::create($this, $this->content);
+        PageData::create($this, $this->content, $this->config);
     }
 
     /**
@@ -69,11 +67,11 @@ final class Page
 
         foreach ($assets as $asset) {
             if (isset($this->data[$asset])) {
-                $this->data[$asset] = Helpers::to_assets($this->data[$asset]);
+                $this->data[$asset] = Helpers::to_assets($this->data[$asset], $this->config);
             }
         }
 
-        $data = TemplateParser::render($this->data, $this->templateFile);
+        $data = TemplateParser::render($this->data, $this->templateFile, $this->config);
 
         // Post-process JSON
         if (strcasecmp($this->templateType, 'json') === 0) {
@@ -120,9 +118,9 @@ final class Page
     /**
      * Get template name from directory.
      */
-    public static function templateName(string $filePath): ?string
+    public static function templateName(string $filePath, Config $config): ?string
     {
-        $txts = array_keys(Helpers::list_files($filePath, '/\.(yml|txt)/'));
+        $txts = array_keys(Helpers::list_files($filePath, '/\.(yml|txt)/', false, $config));
 
         return $txts === [] ? null : preg_replace('/\.(yml|txt)/', '', $txts[0]);
     }
@@ -130,10 +128,12 @@ final class Page
     /**
      * Get template file path.
      */
-    public static function templateFile(?string $templateName): ?string
+    public static function templateFile(?string $templateName, Config $config): ?string
     {
+        $templatesFolder = $config->templatesFolder;
+
         if ($templateName === null) {
-            return LegacyConfig::$templates_folder . '/default.html';
+            return $templatesFolder . '/default.html';
         }
 
         $requestUri = $_SERVER['REQUEST_URI'] ?? '';
@@ -141,12 +141,12 @@ final class Page
         $extension = $ext[1] ?? '.*';
 
         $templateName = preg_replace('/([^.]*\.)?([^.]*)$/', '\\2', $templateName);
-        $templateFile = glob(LegacyConfig::$templates_folder . '/' . $templateName . $extension);
+        $templateFile = glob($templatesFolder . '/' . $templateName . $extension);
 
         if ($templateFile === [] || $templateFile === false) {
-            $templateFile = glob(LegacyConfig::$templates_folder . '/' . $templateName . '.*');
+            $templateFile = glob($templatesFolder . '/' . $templateName . '.*');
         }
 
-        return $templateFile[0] ?? LegacyConfig::$templates_folder . '/default.html';
+        return $templateFile[0] ?? $templatesFolder . '/default.html';
     }
 }

@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Coding agent guidelines in `AGENTS.md` - 2025-03-07
 - Issues tracking file `ISSUES.md` - 2025-03-07
 - This CHANGELOG.md - 2025-03-07
+- **Composer Library Support** - Package now installable via `composer require tasinttttttt/stacey`
+  - Changed package name from `kolber/stacey` to `tasinttttttt/stacey`
+  - Changed package type from `project` to `library`
+  - Created `composer/Setup.php` for automated post-install setup
+  - Modified `index.php` to auto-detect vendor vs project root context
+  - Added `post-install-cmd` and `post-update-cmd` scripts
+  - Created `.gitattributes` to exclude demo content from distribution
+  - Added minimal "Hello World" quick start example in README
 
 ### Fixed
 - Fixed YAML parsing errors in content files (colons in unquoted values)

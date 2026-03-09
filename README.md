@@ -27,60 +27,76 @@ Stacey is a lightweight, file-based CMS that generates websites from Markdown/YA
 
 ## Installation
 
+Install Stacey as a Composer dependency in your project:
+
 ```bash
-# Clone the repository
-git clone https://github.com/kolber/stacey.git
-cd stacey
-
-# Install dependencies
-composer install --no-dev
-
-# For development with all tools
-composer install
+composer require tasinttttttt/stacey
 ```
+
+This will:
+- Install Stacey and all dependencies
+- Create `content/`, `templates/`, `public/`, and `app/_cache/` directories
+- Copy `index.php` to your project root
+
+### Quick Start (Hello World)
+
+Create your first page and template:
+
+**1. Create a template** (`templates/page.html`):
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ page.title }}</title>
+</head>
+<body>
+    <h1>{{ page.title }}</h1>
+    <div class="content">
+        {{ page.content|raw }}
+    </div>
+</body>
+</html>
+```
+
+**2. Create a content file** (`content/index/page.yml`):
+```yaml
+---
+title: Hello World
+---
+Welcome to Stacey! This is your homepage.
+```
+
+**3. Run the development server**:
+```bash
+php -S localhost:8000 index.php
+```
+
+**4. Open** http://localhost:8000 in your browser.
 
 ## Project Structure
 
+After installation, your project will have:
+
 ```
-stacey/
-├── app/                    # Core application files
-│   ├── asset/             # Asset classes (Page, Image, Video, etc.)
-│   ├── parsers/           # Content parsers (Markdown, Template)
-│   ├── Config.php         # Application configuration
-│   ├── Container.php      # Dependency injection container
-│   ├── Cache.php          # Page caching system
-│   ├── Helpers.php        # Utility functions
-│   ├── PageData.php       # Page data generation
-│   └── Stacey.php         # Main application class
-├── content/               # Your content files (demo included)
-│   ├── _shared.yml       # Global site data
-│   ├── index/            # Homepage
-│   ├── 1.work/           # Work section with demo project
-│   └── 2.about/          # About page
-├── extension/             # Extensions and custom code
-├── public/                # Public web root (empty - add your CSS/JS)
+my-project/
+├── content/               # Your content files
+│   └── index/
+│       └── page.yml      # Homepage content
 ├── templates/             # Twig templates
-├── tests/                 # PHPUnit tests
-├── index.php             # Application entry point
-└── README.md             # This file
+│   └── page.html         # Page template
+├── public/                # Public assets (CSS, JS, images)
+├── app/
+│   └── _cache/           # Cache directory
+├── vendor/                # Composer dependencies
+│   └── tasinttttttt/
+│       └── stacey/       # Stacey CMS core
+├── index.php              # Application entry point
+└── composer.json          # Your project dependencies
 ```
-
-## Demo Content
-
-The project includes minimal demo content showcasing core features:
-
-- **Home** (/) - Welcome message
-- **Work** (/work/) - Project listing with 1 demo project  
-- **Demo Project** (/work/demo-project/) - Shows images, metadata, bilingual content
-- **About** (/about/) - Simple text page
-
-Replace this content with your own by editing files in `content/`.
 
 ## Development
 
 ### Running the Development Server
-
-The easiest way to run Stacey locally is with PHP's built-in server:
 
 ```bash
 php -S localhost:8000 index.php
@@ -116,15 +132,15 @@ The `content/` folder holds all page content. Stacey uses a filesystem-based str
 ```
 content/
 ├── _shared.yml           # Global data available to all pages
-├── index/               # Homepage (optional)
-│   └── index.yml
+├── index/               # Homepage
+│   └── page.yml
 ├── 1.projects/          # Visible in navigation, ordered by number
-│   ├── project.yml
+│   ├── page.yml
 │   └── 01.first-project/
 │       ├── project.yml
 │       └── thumb.jpg
-└── 2.info/              # "Info" page at /info/
-    └── info.yml
+└── 2.about/             # "About" page at /about/
+    └── page.yml
 ```
 
 ### Number Prefix Convention
@@ -231,7 +247,7 @@ In your templates, pages provide these variables:
 | `page.images` | Image files in folder |
 | `page.files` | All files in folder |
 | `page.root_path` | Relative path to site root (e.g., `../` or `./`) |
-| `page.content_path` | Path relative to content folder (e.g., `1.projects/my-project`) |
+| `page.content_path` | Path relative to content folder |
 | `page.thumb` | Thumbnail object with url, width, height |
 
 ### Global Shared Data
@@ -288,7 +304,7 @@ The `page.root_path` variable provides relative paths based on page depth:
 
 Use this for linking to assets:
 ```html
-<link rel="stylesheet" href="{{ page.root_path }}public/docs/css/style.css">
+<link rel="stylesheet" href="{{ page.root_path }}public/css/style.css">
 <img src="{{ page.root_path }}content/{{ page.content_path }}/image.jpg">
 ```
 
@@ -550,15 +566,14 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 Stacey was created by [Anthony Kolber](https://github.com/kolber).
 
-Modernization to PHP 8.3+ completed in 2026.
+Modernization to PHP 8.3+ and Composer library conversion completed in 2026.
 
 ## Resources
 
-- [Documentation](https://github.com/kolber/stacey/wiki)
-- [Issue Tracker](https://github.com/kolber/stacey/issues)
-- [Modernization Plan](plan/MODERNIZATION_PLAN.md)
+- [Documentation](https://github.com/tasinttttttt/stacey/wiki)
+- [Issue Tracker](https://github.com/tasinttttttt/stacey/issues)
 - [Changelog](CHANGELOG.md)
 
 ---
 
-**Note**: This is version 4.0 - a modernized fork with PHP 8.3+ support, comprehensive testing, and improved code quality tools.
+**Note**: This is version 4.0 - a modernized fork with PHP 8.3+ support, comprehensive testing, and Composer library support.

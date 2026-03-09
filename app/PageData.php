@@ -449,14 +449,8 @@ final class PageData
     /**
      * @deprecated Use instance method generate() instead
      */
-    public static function create(object $page, bool $content = false): void
+    public static function create(object $page, bool $content, Config $config): void
     {
-        $config = new Config(
-            rootFolder: \Stacey\Extension\Config::$root_folder,
-            contentFolder: \Stacey\Extension\Config::$content_folder,
-            templatesFolder: \Stacey\Extension\Config::$templates_folder,
-            cacheFolder: \Stacey\Extension\Config::$cache_folder,
-        );
         $helpers = new Helpers($config);
         $pageData = new self($config, $helpers);
         $pageData->generate($page, $content);
@@ -467,9 +461,8 @@ final class PageData
      * @param array<string, mixed> $vars
      * @return array<string, mixed>
      */
-    public static function parseVars(array $vars, bool $markdownCompatible, string $relativePath): array
+    public static function parseVars(array $vars, bool $markdownCompatible, string $relativePath, Config $config): array
     {
-        $config = new Config();
         $helpers = new Helpers($config);
         $pageData = new self($config, $helpers);
 

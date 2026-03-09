@@ -6,7 +6,6 @@ namespace Stacey\Core;
 
 use Stacey\Core\Asset\AssetFactory;
 use Stacey\Core\Parser\TemplateParser;
-use Stacey\Extension\Config as LegacyConfig;
 
 /**
  * Simple Dependency Injection Container.
@@ -22,8 +21,8 @@ final class Container
         private readonly Config $config,
         private readonly array $serverParams = [],
     ) {
-        // Initialize legacy config for backward compatibility during migration
-        $this->initializeLegacyConfig();
+        // Set config for AssetFactory
+        AssetFactory::setConfig($config);
     }
 
     /**
@@ -58,7 +57,7 @@ final class Container
                 $this->get(Helpers::class),
                 $this->get(Cache::class),
             ),
-            Helpers::class => new Helpers($this->config),
+            Helpers::class => new Helpers($this->config, $this->serverParams),
             Cache::class => new Cache($this->config, $this->get(Helpers::class)),
             PageData::class => new PageData($this->config, $this->get(Helpers::class), $this->serverParams),
             AssetFactory::class => new AssetFactory(),
@@ -69,20 +68,5 @@ final class Container
 
         /** @var T $instance */
         return $instance;
-    }
-
-    /**
-     * Initialize legacy static config for backward compatibility.
-     * This will be removed once all code is migrated.
-     */
-    private function initializeLegacyConfig(): void
-    {
-        LegacyConfig::$root_folder = $this->config->rootFolder;
-        LegacyConfig::$app_folder = $this->config->appFolder;
-        LegacyConfig::$content_folder = $this->config->contentFolder;
-        LegacyConfig::$templates_folder = $this->config->templatesFolder;
-        LegacyConfig::$cache_folder = $this->config->cacheFolder;
-        LegacyConfig::$extensions_folder = $this->config->extensionsFolder;
-        LegacyConfig::$md_gfm_style_linebreaks = $this->config->mdGfmStyleLinebreaks;
     }
 }

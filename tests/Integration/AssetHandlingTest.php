@@ -28,15 +28,20 @@ final class AssetHandlingTest extends TestCase
 
         $this->config = new Config(
             rootFolder: TEST_ROOT . '/../',
-            contentFolder: TEST_ROOT . '/../content',
+            contentFolder: CONTENT_ROOT,
+            templatesFolder: TEST_ROOT . '/Fixtures/templates',
+            cacheFolder: TEST_ROOT . '/../app/_cache',
         );
 
         $this->helpers = new Helpers($this->config, []);
+
+        // Set config for AssetFactory
+        AssetFactory::setConfig($this->config);
     }
 
     public function test_can_create_page_asset(): void
     {
-        $page = new Page('index', false, $this->config);
+        $page = new Page('index', $this->config, false);
 
         $this->assertInstanceOf(Page::class, $page);
         $this->assertNotEmpty($page->data);
@@ -45,7 +50,7 @@ final class AssetHandlingTest extends TestCase
 
     public function test_page_has_required_data_fields(): void
     {
-        $page = new Page('index', false, $this->config);
+        $page = new Page('index', $this->config, false);
 
         $requiredFields = [
             'file_path',
@@ -64,7 +69,7 @@ final class AssetHandlingTest extends TestCase
 
     public function test_page_has_siblings_and_children(): void
     {
-        $page = new Page('projects', false, $this->config);
+        $page = new Page('projects', $this->config, false);
 
         $this->assertArrayHasKey('siblings', $page->data);
         $this->assertArrayHasKey('siblings_and_self', $page->data);
@@ -92,7 +97,7 @@ final class AssetHandlingTest extends TestCase
     public function test_can_get_image_dimensions(): void
     {
         // Find an image file in the content directory
-        $imageFiles = glob(TEST_ROOT . '/../content/**/*.{jpg,jpeg,png,gif}', GLOB_BRACE);
+        $imageFiles = glob(CONTENT_ROOT . '/**/*.{jpg,jpeg,png,gif}', GLOB_BRACE);
 
         if (empty($imageFiles)) {
             $this->markTestSkipped('No image files found in content directory');
@@ -115,7 +120,7 @@ final class AssetHandlingTest extends TestCase
 
     public function test_page_template_detection(): void
     {
-        $page = new Page('index', false, $this->config);
+        $page = new Page('index', $this->config, false);
 
         $this->assertNotEmpty($page->templateName);
         $this->assertNotNull($page->templateFile);

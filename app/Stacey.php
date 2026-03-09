@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Stacey\Core;
 
 use Stacey\Core\Asset\Page;
-use Stacey\Extension\Config as LegacyConfig;
 
 /**
  * Main application class for Stacey CMS.
@@ -196,13 +195,13 @@ final class Stacey
             throw new \Exception('404');
         }
 
-        $templateName = Page::templateName($filePath);
+        $templateName = Page::templateName($filePath, $this->config);
 
         if ($templateName === null || $templateName === '' || $templateName === '0') {
             throw new \Exception('404');
         }
 
-        $templateFile = Page::templateFile($templateName);
+        $templateFile = Page::templateFile($templateName, $this->config);
 
         if ($templateFile === null) {
             throw new \Exception('404');
@@ -224,7 +223,7 @@ final class Stacey
             header('HTTP/1.0 404 Not Found');
 
             // Try to load custom 404 page
-            $notFoundPath = LegacyConfig::$content_folder . '/404';
+            $notFoundPath = $this->config->contentFolder . '/404';
             if (file_exists($notFoundPath)) {
                 $this->route = '404';
 
@@ -238,7 +237,7 @@ final class Stacey
             }
 
             // Try static 404.html
-            $static404 = LegacyConfig::$root_folder . 'public/404.html';
+            $static404 = $this->config->publicFolder . '/404.html';
             if (file_exists($static404)) {
                 echo file_get_contents($static404);
 

@@ -53,7 +53,7 @@ final readonly class TemplateParser
             'autoescape' => false,
         ]);
 
-        $twig->addExtension(new StaceyTwigExtension());
+        $twig->addExtension(new StaceyTwigExtension($this->config));
 
         return $twig->render($template, ['page' => $data]);
     }
@@ -65,12 +65,8 @@ final readonly class TemplateParser
      * @param array<string, mixed> $data
      * @throws \RuntimeException
      */
-    public static function render(array $data, string $template): string
+    public static function render(array $data, string $template, Config $config): string
     {
-        $config = new Config(
-            templatesFolder: \Stacey\Extension\Config::$templates_folder,
-            cacheFolder: \Stacey\Extension\Config::$cache_folder,
-        );
         $parser = new self($config);
 
         return $parser->parse($data, $template);

@@ -88,7 +88,7 @@ final class PageParentPropertyTest extends TestCase
         $this->assertStringNotContainsString('<h1>404</h1>', $output, 'Should not render 404');
     }
 
-    public function test_parent_property_contains_correct_page_name(): void
+    public function test_parent_property_is_single_page_object(): void
     {
         // Get a nested page directly via AssetFactory
         $nestedPagePath = CONTENT_ROOT . '/projects/01.project-1';
@@ -100,12 +100,12 @@ final class PageParentPropertyTest extends TestCase
 
         $pageData = AssetFactory::get('projects/01.project-1');
 
-        // The parent should contain the projects page data
-        $this->assertNotEmpty($pageData['parent'], 'Parent property should not be empty for nested page');
+        // The parent should be a single page object (array with page data), not an array of pages
+        $this->assertNotNull($pageData['parent'], 'Parent property should not be null for nested page');
+        $this->assertIsArray($pageData['parent'], 'Parent should be an array (page data)');
         
         // Check that parent has correct page_name (from folder name "projects")
-        $parent = $pageData['parent'][0];
-        $this->assertEquals('Projects', $parent['page_name'], 'Parent page_name should be "Projects"');
+        $this->assertEquals('Projects', $pageData['parent']['page_name'], 'Parent page_name should be "Projects"');
     }
 
     public function test_parent_property_contains_correct_title(): void
@@ -118,9 +118,8 @@ final class PageParentPropertyTest extends TestCase
 
         $pageData = AssetFactory::get('projects/01.project-1');
 
-        $parent = $pageData['parent'][0];
         // Title comes from category.yml
-        $this->assertEquals('Projects', $parent['title'], 'Parent title should be "Projects"');
+        $this->assertEquals('Projects', $pageData['parent']['title'], 'Parent title should be "Projects"');
     }
 
     public function test_parent_property_contains_correct_content(): void
@@ -133,9 +132,8 @@ final class PageParentPropertyTest extends TestCase
 
         $pageData = AssetFactory::get('projects/01.project-1');
 
-        $parent = $pageData['parent'][0];
         // Content comes from category.yml
-        $this->assertStringContainsString('Projects page content', $parent['content'], 'Parent content should contain "Projects page content"');
+        $this->assertStringContainsString('Projects page content', $pageData['parent']['content'], 'Parent content should contain "Projects page content"');
     }
 
     public function test_parent_property_contains_url_and_permalink(): void
@@ -148,15 +146,13 @@ final class PageParentPropertyTest extends TestCase
 
         $pageData = AssetFactory::get('projects/01.project-1');
 
-        $parent = $pageData['parent'][0];
-        
         // Check URL is correct
-        $this->assertArrayHasKey('url', $parent, 'Parent should have url');
-        $this->assertStringContainsString('projects', $parent['url'], 'Parent URL should contain "projects"');
+        $this->assertArrayHasKey('url', $pageData['parent'], 'Parent should have url');
+        $this->assertStringContainsString('projects', $pageData['parent']['url'], 'Parent URL should contain "projects"');
         
         // Check permalink is correct
-        $this->assertArrayHasKey('permalink', $parent, 'Parent should have permalink');
-        $this->assertStringContainsString('projects', $parent['permalink'], 'Parent permalink should contain "projects"');
+        $this->assertArrayHasKey('permalink', $pageData['parent'], 'Parent should have permalink');
+        $this->assertStringContainsString('projects', $pageData['parent']['permalink'], 'Parent permalink should contain "projects"');
     }
 
     public function test_parent_property_contains_slug(): void
@@ -169,11 +165,9 @@ final class PageParentPropertyTest extends TestCase
 
         $pageData = AssetFactory::get('projects/01.project-1');
 
-        $parent = $pageData['parent'][0];
-        
         // Slug should be derived from folder name
-        $this->assertArrayHasKey('slug', $parent, 'Parent should have slug');
-        $this->assertEquals('projects', $parent['slug'], 'Parent slug should be "projects"');
+        $this->assertArrayHasKey('slug', $pageData['parent'], 'Parent should have slug');
+        $this->assertEquals('projects', $pageData['parent']['slug'], 'Parent slug should be "projects"');
     }
 
     public function test_parent_property_contains_image_data(): void
@@ -186,33 +180,31 @@ final class PageParentPropertyTest extends TestCase
 
         $pageData = AssetFactory::get('projects/01.project-1');
 
-        $parent = $pageData['parent'][0];
-        
         // Check image from category.yml
-        $this->assertArrayHasKey('image', $parent, 'Parent should have image');
-        $this->assertEquals('01.jpg', $parent['image'], 'Parent image should be "01.jpg"');
+        $this->assertArrayHasKey('image', $pageData['parent'], 'Parent should have image');
+        $this->assertEquals('01.jpg', $pageData['parent']['image'], 'Parent image should be "01.jpg"');
         
         // Check image_caption
-        $this->assertArrayHasKey('image_caption', $parent, 'Parent should have image_caption');
-        $this->assertStringContainsString('Projects overview', $parent['image_caption'], 'Parent image_caption should contain "Projects overview"');
+        $this->assertArrayHasKey('image_caption', $pageData['parent'], 'Parent should have image_caption');
+        $this->assertStringContainsString('Projects overview', $pageData['parent']['image_caption'], 'Parent image_caption should contain "Projects overview"');
     }
 
-    public function test_root_page_has_empty_parent(): void
+    public function test_root_page_has_null_parent(): void
     {
         // Get root page (index)
         $pageData = AssetFactory::get('index');
 
         $this->assertArrayHasKey('parent', $pageData, 'Page should have parent property');
-        $this->assertEmpty($pageData['parent'], 'Root page should have empty parent');
+        $this->assertNull($pageData['parent'], 'Root page should have null parent');
     }
 
-    public function test_top_level_page_has_empty_parent(): void
+    public function test_top_level_page_has_null_parent(): void
     {
         // Get a top-level page (e.g., about)
         $pageData = AssetFactory::get('about');
 
         $this->assertArrayHasKey('parent', $pageData, 'Page should have parent property');
-        $this->assertEmpty($pageData['parent'], 'Top-level page should have empty parent');
+        $this->assertNull($pageData['parent'], 'Top-level page should have null parent');
     }
 
     public function test_parents_property_contains_file_paths(): void

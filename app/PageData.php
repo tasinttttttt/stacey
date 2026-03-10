@@ -254,13 +254,12 @@ final class PageData
         $page->query = $_GET;
 
         $parentPath = $this->getParent($page->filePath);
-        // Convert parent paths to Page objects
+        // Convert parent path to a single Page object (or null if no parent)
         // Ensure AssetFactory has the correct config
         \Stacey\Core\Asset\AssetFactory::setConfig($this->config);
-        $page->parent = array_map(
-            fn($path) => is_string($path) ? \Stacey\Core\Asset\AssetFactory::get($path) : [],
-            $parentPath
-        );
+        $page->parent = !empty($parentPath) && is_string($parentPath[0])
+            ? \Stacey\Core\Asset\AssetFactory::get($parentPath[0])
+            : null;
         $page->parents = $this->getParents($page->filePath);
 
         $parentPath = empty($parentPath[0]) ? $this->config->contentFolder : $parentPath[0];

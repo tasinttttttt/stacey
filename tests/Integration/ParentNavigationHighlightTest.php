@@ -111,17 +111,16 @@ final class ParentNavigationHighlightTest extends TestCase
         // Get the child page data
         $childPage = AssetFactory::get('projects/01.project-1');
 
-        // Parent should be populated
-        $this->assertNotEmpty($childPage['parent'], 'Child page should have parent');
-        
-        $parent = $childPage['parent'][0];
+        // Parent should be populated (single page object, not array)
+        $this->assertNotNull($childPage['parent'], 'Child page should have parent');
+        $this->assertIsArray($childPage['parent'], 'Parent should be an array (page data)');
         
         // Parent should have identifying info we can use for comparison
-        $this->assertArrayHasKey('url', $parent, 'Parent should have url');
-        $this->assertArrayHasKey('permalink', $parent, 'Parent should have permalink');
+        $this->assertArrayHasKey('url', $childPage['parent'], 'Parent should have url');
+        $this->assertArrayHasKey('permalink', $childPage['parent'], 'Parent should have permalink');
         
         // The parent should be the projects page
-        $this->assertStringContainsString('projects', $parent['url'], 'Parent URL should contain projects');
+        $this->assertStringContainsString('projects', $childPage['parent']['url'], 'Parent URL should contain projects');
     }
 
     /**
@@ -138,8 +137,8 @@ final class ParentNavigationHighlightTest extends TestCase
         // Get the child page
         $childPage = AssetFactory::get('projects/01.project-1');
         
-        // Get parent info
-        $parent = $childPage['parent'][0] ?? null;
+        // Get parent info (now a single page object)
+        $parent = $childPage['parent'];
         $this->assertNotNull($parent, 'Should have parent');
         
         // Get parent slug
@@ -150,7 +149,7 @@ final class ParentNavigationHighlightTest extends TestCase
         $this->assertEquals('projects', $parentSlug, 'Parent slug should be "projects"');
         
         // Now we can use this slug to identify which nav item is the parent
-        // In a template: {% if item.slug == page.parent[0].slug %}active{% endif %}
+        // In a template: {% if item.slug == page.parent.slug %}active{% endif %}
     }
 
     /**
@@ -165,7 +164,7 @@ final class ParentNavigationHighlightTest extends TestCase
         }
 
         $childPage = AssetFactory::get('projects/01.project-1');
-        $parent = $childPage['parent'][0] ?? null;
+        $parent = $childPage['parent'];
         
         $this->assertNotNull($parent, 'Should have parent');
         
@@ -178,15 +177,15 @@ final class ParentNavigationHighlightTest extends TestCase
     }
 
     /**
-     * Test: Top-level pages have empty parent
+     * Test: Top-level pages have null parent
      */
-    public function test_top_level_pages_have_empty_parent(): void
+    public function test_top_level_pages_have_null_parent(): void
     {
         // Get a top-level page
         $topLevelPage = AssetFactory::get('about');
         
-        // Should have empty parent
-        $this->assertEmpty($topLevelPage['parent'], 'Top-level page should have empty parent');
+        // Should have null parent
+        $this->assertNull($topLevelPage['parent'], 'Top-level page should have null parent');
         
         // When on a top-level page, parent-based highlighting would not apply
         // You would use is_current instead
@@ -204,7 +203,7 @@ final class ParentNavigationHighlightTest extends TestCase
         }
 
         $childPage = AssetFactory::get('projects/01.project-1');
-        $parent = $childPage['parent'][0] ?? null;
+        $parent = $childPage['parent'];
         
         $this->assertNotNull($parent, 'Should have parent');
         
@@ -231,14 +230,14 @@ final class ParentNavigationHighlightTest extends TestCase
         
         // 1. Get the child page data
         $childPage = AssetFactory::get('projects/01.project-1');
-        $parent = $childPage['parent'][0] ?? null;
+        $parent = $childPage['parent'];
         $parentSlug = $parent['slug'] ?? '';
         
         // 2. In your template, iterate root items:
         // {% for item in page.root %}
         //
         // 3. Check if this item is the current page's parent:
-        // {% set is_parent_active = (page.parent is not empty and item.slug == page.parent[0].slug) %}
+        // {% set is_parent_active = (page.parent is not null and item.slug == page.parent.slug) %}
         //
         // 4. Combine with is_current for full highlighting:
         // <a href="{{ item.url }}" class="{% if item.is_current or is_parent_active %}active{% endif %}">
@@ -253,13 +252,13 @@ final class ParentNavigationHighlightTest extends TestCase
         //
         // - When on Projects top-level page:
         //   - item.is_current = true
-        //   - is_parent_active = false (Projects has no parent)
+        //   - is_parent_active = false (page.parent is null)
         //   - Result: Projects link is highlighted
         
         $this->assertNotEmpty($parentSlug, 'Should have parent slug for comparison');
         $this->assertEquals('projects', $parentSlug, 'Parent slug should be projects');
         
-        // The key insight: page.parent[0].slug gives you the parent's identifier
+        // The key insight: page.parent.slug gives you the parent's identifier
         // You can compare this against any navigation item's slug
     }
 }

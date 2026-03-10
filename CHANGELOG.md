@@ -22,16 +22,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Fixed `is_current` functionality for navigation templates** - The `is_current` property now works correctly when iterating through pages in navigation menus
-  - **Root cause**: Child pages created via `AssetFactory` didn't have access to server params (REQUEST_URI), so `is_current` was always false for navigation items
-  - **Solution**:
-    - Added `PageData::setGlobalServerParams()` static method to preserve server params globally
-    - Updated `PageData::create()` to use global server params when creating child pages
-    - Modified `isCurrent()` comparison to use `urlPath` (clean URLs) instead of `permalink` (which has `?/` prefix from mod_rewrite)
-    - Fixed baseUrl to use computed `$page->base_url` instead of `$page->data['base_url']` (which was from YAML content)
-  - **Files changed**: `app/PageData.php`, `index.php`
+  - **Root cause**: Child pages created via `AssetFactory` didn't have access to the current request context, so `is_current` was always false for navigation items
+  - **Solution**: Store the clean route from Stacey in `$GLOBALS['current_route']` and compare against page URL paths
+    - Added `$GLOBALS['current_route']` in `Stacey::createPage()` - stores the parsed route (e.g., "about" or "projects/my-project")
+    - Simplified `PageData::isCurrent()` to compare `$GLOBALS['current_route']` against page permalink
+    - Removed dependency on unreliable `REQUEST_URI` server parameter
+    - Handles trailing slashes automatically (normalized during comparison)
+    - Index page matches when route is empty or 'index'
+  - **Benefits**:
+    - Works with any URL rewriting setup (mod_rewrite, nginx, proxies)
+    - Immune to query strings and domain variations
+    - Same logic works for main page and child pages in navigation
+    - Simpler code - no complex baseUrl/permalink construction
+  - **Files changed**: `app/Stacey.php`, `app/PageData.php`
   - **New test suite**: `tests/Integration/IsCurrentTemplateTest.php` with 7 integration tests verifying navigation highlighting works correctly
   - **Test fixtures created**:
-    - `tests/Fixtures/templates/navigation-test.html` - Template with navigation menu using `is_current`
     - `tests/Fixtures/templates/home-nav.html`, `about-nav.html`, `projects-nav.html` - Page templates
     - `tests/Fixtures/content/1.home-nav/`, `2.about-nav/`, `3.projects-nav/` - Test content pages
 

@@ -210,6 +210,7 @@ final class Stacey
         // Set globals for backward compatibility
         $GLOBALS['current_page_file_path'] = $filePath;
         $GLOBALS['current_page_template_file'] = $templateFile;
+        $GLOBALS['current_route'] = $this->route;
 
         $this->render($filePath, $templateFile);
     }

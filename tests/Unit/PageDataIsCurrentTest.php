@@ -34,210 +34,153 @@ final class PageDataIsCurrentTest extends TestCase
             'SCRIPT_NAME' => '/index.php',
             'REQUEST_URI' => '/',
         ]);
+
+        // Clear the global route before each test
+        $GLOBALS['current_route'] = '';
     }
 
-    public function test_is_current_returns_true_for_root_index_page(): void
+    protected function tearDown(): void
     {
-        $serverParams = [
-            'HTTP_HOST' => 'localhost',
-            'REQUEST_URI' => '/',
-        ];
+        // Clean up global state after each test
+        unset($GLOBALS['current_route']);
+    }
 
-        $pageData = new PageData($this->config, $this->helpers, $serverParams);
+    public function test_is_current_returns_true_when_route_matches_permalink(): void
+    {
+        $GLOBALS['current_route'] = 'projects';
 
-        // When permalink is 'index' and request URI is '/', should be current
-        $result = $pageData->isCurrent('localhost', 'index');
+        $pageData = new PageData($this->config, $this->helpers, []);
+
+        $result = $pageData->isCurrent('projects');
 
         $this->assertTrue($result);
     }
 
-    public function test_is_current_returns_false_for_index_when_not_on_root(): void
+    public function test_is_current_returns_false_when_route_does_not_match(): void
     {
-        $serverParams = [
-            'HTTP_HOST' => 'localhost',
-            'REQUEST_URI' => '/projects',
-        ];
+        $GLOBALS['current_route'] = 'about';
 
-        $pageData = new PageData($this->config, $this->helpers, $serverParams);
+        $pageData = new PageData($this->config, $this->helpers, []);
 
-        // When permalink is 'index' but request URI is '/projects', should NOT be current
-        $result = $pageData->isCurrent('localhost', 'index');
+        $result = $pageData->isCurrent('projects');
 
         $this->assertFalse($result);
     }
 
-    public function test_is_current_returns_true_for_matching_permalink(): void
+    public function test_is_current_handles_nested_routes(): void
     {
-        $serverParams = [
-            'HTTP_HOST' => 'localhost',
-            'REQUEST_URI' => '/projects',
-        ];
+        $GLOBALS['current_route'] = 'projects/my-project';
 
-        $pageData = new PageData($this->config, $this->helpers, $serverParams);
+        $pageData = new PageData($this->config, $this->helpers, []);
 
-        // When permalink is 'projects' and request URI is '/projects', should be current
-        $result = $pageData->isCurrent('localhost', 'projects');
+        $result = $pageData->isCurrent('projects/my-project');
 
         $this->assertTrue($result);
     }
 
-    public function test_is_current_returns_false_for_non_matching_permalink(): void
+    public function test_is_current_handles_trailing_slashes(): void
     {
-        $serverParams = [
-            'HTTP_HOST' => 'localhost',
-            'REQUEST_URI' => '/about',
-        ];
+        $GLOBALS['current_route'] = 'projects/';
 
-        $pageData = new PageData($this->config, $this->helpers, $serverParams);
+        $pageData = new PageData($this->config, $this->helpers, []);
 
-        // When permalink is 'projects' but request URI is '/about', should NOT be current
-        $result = $pageData->isCurrent('localhost', 'projects');
+        // Should match even with trailing slash differences
+        $result = $pageData->isCurrent('projects');
+
+        $this->assertTrue($result);
+    }
+
+    public function test_is_current_index_page_when_route_is_empty(): void
+    {
+        $GLOBALS['current_route'] = '';
+
+        $pageData = new PageData($this->config, $this->helpers, []);
+
+        // Index page should be current when route is empty
+        $result = $pageData->isCurrent('index');
+
+        $this->assertTrue($result);
+    }
+
+    public function test_is_current_index_page_when_route_is_index(): void
+    {
+        $GLOBALS['current_route'] = 'index';
+
+        $pageData = new PageData($this->config, $this->helpers, []);
+
+        // Index page should be current when route is 'index'
+        $result = $pageData->isCurrent('index');
+
+        $this->assertTrue($result);
+    }
+
+    public function test_is_current_index_page_not_current_when_on_other_page(): void
+    {
+        $GLOBALS['current_route'] = 'projects';
+
+        $pageData = new PageData($this->config, $this->helpers, []);
+
+        // Index page should NOT be current when on another page
+        $result = $pageData->isCurrent('index');
 
         $this->assertFalse($result);
     }
 
-    public function test_is_current_handles_base_url_with_path(): void
+    public function test_is_current_defaults_to_empty_route_when_not_set(): void
     {
-        $serverParams = [
-            'HTTP_HOST' => 'localhost',
-            'REQUEST_URI' => '/subdir/projects',
-        ];
+        unset($GLOBALS['current_route']);
 
-        $pageData = new PageData($this->config, $this->helpers, $serverParams);
+        $pageData = new PageData($this->config, $this->helpers, []);
 
-        // Base URL 'localhost/subdir' should extract path '/subdir'
-        // Then check if '/subdir' + '/' + 'projects' matches '/subdir/projects'
-        $result = $pageData->isCurrent('localhost/subdir', 'projects');
+        // When current_route is not set, defaults to empty (root)
+        $result = $pageData->isCurrent('index');
 
         $this->assertTrue($result);
     }
 
-    public function test_is_current_handles_nested_permalinks(): void
+    public function test_is_current_with_complex_nested_path(): void
     {
-        $serverParams = [
-            'HTTP_HOST' => 'localhost',
-            'REQUEST_URI' => '/projects/my-project',
-        ];
+        $GLOBALS['current_route'] = 'blog/2024/january/my-post';
 
-        $pageData = new PageData($this->config, $this->helpers, $serverParams);
+        $pageData = new PageData($this->config, $this->helpers, []);
 
-        // Should match nested permalink 'projects/my-project'
-        $result = $pageData->isCurrent('localhost', 'projects/my-project');
+        $result = $pageData->isCurrent('blog/2024/january/my-post');
 
         $this->assertTrue($result);
     }
 
-    public function test_is_current_with_different_base_urls(): void
+    public function test_is_current_is_case_sensitive(): void
     {
-        $serverParams = [
-            'HTTP_HOST' => 'example.com',
-            'REQUEST_URI' => '/blog/posts/hello-world',
-        ];
+        $GLOBALS['current_route'] = 'Projects';
 
-        $pageData = new PageData($this->config, $this->helpers, $serverParams);
+        $pageData = new PageData($this->config, $this->helpers, []);
 
-        // Should work with different base URLs
-        $result = $pageData->isCurrent('example.com', 'blog/posts/hello-world');
-
-        $this->assertTrue($result);
-    }
-
-    public function test_is_current_with_protocol_in_base_url_leaves_slashes(): void
-    {
-        $serverParams = [
-            'HTTP_HOST' => 'example.com',
-            'REQUEST_URI' => '//example.com/path/to/page',
-        ];
-
-        $pageData = new PageData($this->config, $this->helpers, $serverParams);
-
-        // When baseUrl has protocol like 'https://example.com', the regex /^[^\/]+/
-        // matches 'https:' (everything before first /) and removes it, leaving '//example.com'
-        // So the constructed path becomes '//example.com/path/to/page'
-        $result = $pageData->isCurrent('https://example.com', 'path/to/page');
-
-        // This reveals that the implementation keeps the '//' when there's a protocol
-        $this->assertTrue($result);
-    }
-
-    public function test_is_current_with_simple_domain_base_url(): void
-    {
-        $serverParams = [
-            'HTTP_HOST' => 'example.com',
-            'REQUEST_URI' => '/path/to/page',
-        ];
-
-        $pageData = new PageData($this->config, $this->helpers, $serverParams);
-
-        // When baseUrl has no slashes like 'example.com', the regex matches the entire string
-        // So basePath becomes '', and the result is '/path/to/page'
-        $result = $pageData->isCurrent('example.com', 'path/to/page');
-
-        $this->assertTrue($result);
-    }
-
-    public function test_is_current_handles_trailing_slash_in_request_uri(): void
-    {
-        $serverParams = [
-            'HTTP_HOST' => 'localhost',
-            'REQUEST_URI' => '/projects/',
-        ];
-
-        $pageData = new PageData($this->config, $this->helpers, $serverParams);
-
-        // Note: The comparison is exact string match
-        // 'projects' (no trailing slash) vs '/projects/' (with trailing slash)
-        $result = $pageData->isCurrent('localhost', 'projects');
+        // Route comparison should be case-sensitive
+        $result = $pageData->isCurrent('projects');
 
         $this->assertFalse($result);
     }
 
-    public function test_is_current_defaults_to_root_when_no_request_uri(): void
+    public function test_is_current_empty_permalink_on_root(): void
     {
-        $serverParams = [
-            'HTTP_HOST' => 'localhost',
-            // REQUEST_URI not set
-        ];
+        $GLOBALS['current_route'] = '';
 
-        $pageData = new PageData($this->config, $this->helpers, $serverParams);
+        $pageData = new PageData($this->config, $this->helpers, []);
 
-        // When REQUEST_URI is not set, defaults to '/'
-        $result = $pageData->isCurrent('localhost', 'index');
+        // Empty permalink should be considered current on root
+        $result = $pageData->isCurrent('');
 
         $this->assertTrue($result);
     }
 
-    public function test_is_current_with_empty_permalink_on_root_page(): void
+    public function test_is_current_empty_permalink_not_current_on_other_page(): void
     {
-        $serverParams = [
-            'HTTP_HOST' => 'localhost',
-            'REQUEST_URI' => '/',
-        ];
+        $GLOBALS['current_route'] = 'projects';
 
-        $pageData = new PageData($this->config, $this->helpers, $serverParams);
+        $pageData = new PageData($this->config, $this->helpers, []);
 
-        // When permalink is empty string and on root page '/':
-        // basePath = '' (localhost is removed), then '' + '/' + '' = '/'
-        // This matches REQUEST_URI '/', so empty permalink is considered current on root
-        // Note: This might be unintended behavior - empty permalink equals root
-        $result = $pageData->isCurrent('localhost', '');
-
-        $this->assertTrue($result);
-    }
-
-    public function test_is_current_with_empty_permalink_on_non_root_page(): void
-    {
-        $serverParams = [
-            'HTTP_HOST' => 'localhost',
-            'REQUEST_URI' => '/projects',
-        ];
-
-        $pageData = new PageData($this->config, $this->helpers, $serverParams);
-
-        // Empty string permalink on non-root page:
-        // basePath = '', result = '/', REQUEST_URI = '/projects'
-        // '/' !== '/projects', so not current
-        $result = $pageData->isCurrent('localhost', '');
+        // Empty permalink should NOT be current on non-root page
+        $result = $pageData->isCurrent('');
 
         $this->assertFalse($result);
     }

@@ -135,16 +135,21 @@ final class PageData
     /**
      * Check if current page is active.
      */
-    public function isCurrent(string $baseUrl, string $permalink): bool
+    public function isCurrent(string $permalink): bool
     {
-        $basePath = preg_replace('/^[^\/]+/', '', $baseUrl);
-        $requestUri = $this->serverParams['REQUEST_URI'] ?? '/';
+        // Get the clean route from Stacey (e.g., "about" or "projects/my-project")
+        $currentRoute = $GLOBALS['current_route'] ?? '';
 
+        // Normalize: remove trailing slashes for comparison
+        $currentRoute = rtrim($currentRoute, '/');
+        $permalink = rtrim($permalink, '/');
+
+        // Index page is current when route is empty or 'index'
         if ($permalink === 'index') {
-            return $requestUri === '/';
+            return $currentRoute === '' || $currentRoute === 'index';
         }
 
-        return $basePath . '/' . $permalink === $requestUri;
+        return $currentRoute === $permalink;
     }
 
     /**
@@ -231,9 +236,8 @@ final class PageData
         $page->children_count = (string) count($children);
         $page->index = $this->getIndex($siblingsAndSelf, $page->filePath);
 
-        // Use urlPath (clean URL format) for is_current comparison, not permalink (which has ?/ prefix)
-        // Pass the computed base_url from server params
-        $page->is_current = $this->isCurrent($page->base_url, $page->urlPath . '/');
+        // Use urlPath (clean URL format) for is_current comparison against the stored current route
+        $page->is_current = $this->isCurrent($page->urlPath);
         $page->is_last = $index === $siblingsCount;
         $page->is_first = $index === '1';
 
@@ -446,25 +450,13 @@ final class PageData
 
     // Static wrappers for backward compatibility
 
-    /** @var array<string, mixed>|null */
-    private static ?array $globalServerParams = null;
-
-    /**
-     * Set global server params for all PageData instances.
-     * This is needed for is_current calculation in child pages.
-     */
-    public static function setGlobalServerParams(array $serverParams): void
-    {
-        self::$globalServerParams = $serverParams;
-    }
-
     /**
      * @deprecated Use instance method generate() instead
      */
     public static function create(object $page, bool $content, Config $config): void
     {
-        $helpers = new Helpers($config, self::$globalServerParams ?? []);
-        $pageData = new self($config, $helpers, self::$globalServerParams ?? []);
+        $helpers = new Helpers($config);
+        $pageData = new self($config, $helpers);
         $pageData->generate($page, $content);
     }
 

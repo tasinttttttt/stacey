@@ -8,7 +8,6 @@ use PHPUnit\Framework\TestCase;
 use Stacey\Core\Config;
 use Stacey\Core\Container;
 use Stacey\Core\Helpers;
-use Stacey\Core\PageData;
 use Stacey\Core\Stacey;
 
 /**
@@ -58,9 +57,6 @@ final class IsCurrentTemplateTest extends TestCase
             'REQUEST_URI' => $uri,
             'HTTP_USER_AGENT' => 'Mozilla/5.0',
         ];
-
-        // Set global server params for child page is_current calculation
-        PageData::setGlobalServerParams($serverParams);
 
         return new Container($this->config, $serverParams);
     }

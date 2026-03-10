@@ -255,6 +255,8 @@ final class PageData
 
         $parentPath = $this->getParent($page->filePath);
         // Convert parent paths to Page objects
+        // Ensure AssetFactory has the correct config
+        \Stacey\Core\Asset\AssetFactory::setConfig($this->config);
         $page->parent = array_map(
             fn($path) => is_string($path) ? \Stacey\Core\Asset\AssetFactory::get($path) : [],
             $parentPath

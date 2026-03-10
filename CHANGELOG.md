@@ -47,6 +47,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Note**: YAML `slug:` field is now ignored - folder name always takes precedence
   - **Files changed**: `app/PageData.php`
 
+- **Fixed `page.parent` property always being empty** - The `parent` property now correctly returns the parent page data for nested pages
+  - **Root cause**: `AssetFactory::get()` was called with a file path but used a default Config with wrong paths, causing it to return empty data
+  - **Solution**: Added `AssetFactory::setConfig($this->config)` in `PageData::createCollections()` before calling `AssetFactory::get()`
+  - **Behavior**: 
+    - Root pages (e.g., `index`, `about`) have empty `parent` array
+    - Nested pages (e.g., `projects/01.project-1`) have parent populated with the parent page's data
+    - The parent contains full page data including `page_name`, `url`, `permalink`, etc.
+  - **Files changed**: `app/PageData.php`
+  - **New test suite**: `tests/Integration/PageParentPropertyTest.php` with 5 tests verifying parent property works correctly
+
 ### Added
 - Coding agent guidelines in `AGENTS.md` - 2025-03-07
 - Issues tracking file `ISSUES.md` - 2025-03-07

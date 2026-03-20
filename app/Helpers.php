@@ -129,27 +129,32 @@ final class Helpers
     /**
      * Convert relative path to absolute URL.
      */
-    public function relativePathToAbsoluteUrl(string $relativePath): string
+    public function relativePathToAbsoluteUrl(?string $relativePath): string
     {
-        $scheme = ! empty($this->serverParams['HTTPS']) && $this->serverParams['HTTPS'] !== 'off'
-            ? 'https://'
-            : 'http://';
-        $host = $this->serverParams['HTTP_HOST'] ?? 'localhost';
-        $base = rtrim(dirname($this->serverParams['SCRIPT_NAME'] ?? ''), '/\\');
+        $params = $this->serverParams;
 
-        $relativePath = preg_replace(['/^\/content/', '/^(\.+\/)+/'], ['', ''], $relativePath);
+        $isHttps = !empty($params['HTTPS']) && strtolower($params['HTTPS']) !== 'off';
+        $scheme = $isHttps ? 'https://' : 'http://';
 
-        if ($relativePath === null) {
-            $relativePath = '';
+        $host = $params['HTTP_HOST'] ?? $params['SERVER_NAME'] ?? 'localhost';
+
+        // Replace backslashes (Windows) and ensure no trailing slash
+        $scriptPath = dirname($params['SCRIPT_NAME'] ?? '');
+        $base = rtrim(str_replace('\\', '/', $scriptPath), '/');
+
+        $pathSegment = strstr($relativePath ?? '', '/content');
+
+        if ($pathSegment === false) {
+            return $scheme . $host . $base;
         }
 
-        return $scheme . $host . $base . '/' . ltrim($relativePath, '/');
+        return rtrim($scheme . $host . $base . $pathSegment, '/');
     }
 
     /**
      * Check if URL is external.
      */
-    public function isExternalUrl(string $url, ?string $currentDomain = null): bool
+    public function isExternalUrl(?string $url, ?string $currentDomain = null): bool
     {
         if ($currentDomain === null) {
             $currentDomain = $this->serverParams['HTTP_HOST'] ?? '';
@@ -308,23 +313,23 @@ final class Helpers
     {
         $requestUri = $this->serverParams['REQUEST_URI'] ?? '/';
         $path = parse_url($requestUri, PHP_URL_PATH) ?? '/';
-        
+
         // Count depth by splitting on /
         $parts = array_filter(explode('/', trim($path, '/')));
         $depth = count($parts);
-        
+
         // For root or index, return ./ for relative paths
         if ($depth === 0 || $parts[0] === 'index') {
             $result = './' . $this->modrewriteParse($url);
             return $result;
         }
-        
+
         // Build relative path
         $linkPath = '';
         for ($i = 0; $i < $depth; $i++) {
             $linkPath .= '../';
         }
-        
+
         return $linkPath . $this->modrewriteParse($url);
     }
 
@@ -382,33 +387,87 @@ final class Helpers
     public function translateNamedEntities(string $string): string
     {
         static $mapping = [
-            '&' => '&#38;', '&apos;' => '&#39;', '&minus;' => '&#45;',
-            '&circ;' => '&#94;', '&tilde;' => '&#126;', '&Scaron;' => '&#138;',
-            '&lsaquo;' => '&#139;', '&OElig;' => '&#140;', '&lsquo;' => '&#145;',
-            '&rsquo;' => '&#146;', '&ldquo;' => '&#147;', '&rdquo;' => '&#148;',
-            '&bull;' => '&#149;', '&ndash;' => '&#150;', '&mdash;' => '&#151;',
-            '&trade;' => '&#153;', '&scaron;' => '&#154;', '&rsaquo;' => '&#155;',
-            '&oelig;' => '&#156;', '&Yuml;' => '&#159;', '&yuml;' => '&#255;',
-            '&fnof;' => '&#402;', '&Alpha;' => '&#913;', '&Beta;' => '&#914;',
-            '&Gamma;' => '&#915;', '&Delta;' => '&#916;', '&Epsilon;' => '&#917;',
-            '&Zeta;' => '&#918;', '&Eta;' => '&#919;', '&Theta;' => '&#920;',
-            '&Iota;' => '&#921;', '&Kappa;' => '&#922;', '&Lambda;' => '&#923;',
-            '&Mu;' => '&#924;', '&Nu;' => '&#925;', '&Xi;' => '&#926;',
-            '&Omicron;' => '&#927;', '&Pi;' => '&#928;', '&Rho;' => '&#929;',
-            '&Sigma;' => '&#931;', '&Tau;' => '&#932;', '&Upsilon;' => '&#933;',
-            '&Phi;' => '&#934;', '&Chi;' => '&#935;', '&Psi;' => '&#936;',
-            '&Omega;' => '&#937;', '&alpha;' => '&#945;', '&beta;' => '&#946;',
-            '&gamma;' => '&#947;', '&delta;' => '&#948;', '&epsilon;' => '&#949;',
-            '&zeta;' => '&#950;', '&eta;' => '&#951;', '&theta;' => '&#952;',
-            '&iota;' => '&#953;', '&kappa;' => '&#954;', '&lambda;' => '&#955;',
-            '&mu;' => '&#956;', '&nu;' => '&#957;', '&xi;' => '&#958;',
-            '&omicron;' => '&#959;', '&pi;' => '&#960;', '&rho;' => '&#961;',
-            '&sigmaf;' => '&#962;', '&sigma;' => '&#963;', '&tau;' => '&#964;',
-            '&upsilon;' => '&#965;', '&phi;' => '&#966;', '&chi;' => '&#967;',
-            '&psi;' => '&#968;', '&omega;' => '&#969;', '&thetasym;' => '&#977;',
-            '&upsih;' => '&#978;', '&piv;' => '&#982;', '&ensp;' => '&#8194;',
-            '&emsp;' => '&#8195;', '&thinsp;' => '&#8201;', '&zwnj;' => '&#8204;',
-            '&zwj;' => '&#8205;', '&lrm;' => '&#8206;', '&rlm;' => '&#8207;',
+            '&' => '&#38;',
+            '&apos;' => '&#39;',
+            '&minus;' => '&#45;',
+            '&circ;' => '&#94;',
+            '&tilde;' => '&#126;',
+            '&Scaron;' => '&#138;',
+            '&lsaquo;' => '&#139;',
+            '&OElig;' => '&#140;',
+            '&lsquo;' => '&#145;',
+            '&rsquo;' => '&#146;',
+            '&ldquo;' => '&#147;',
+            '&rdquo;' => '&#148;',
+            '&bull;' => '&#149;',
+            '&ndash;' => '&#150;',
+            '&mdash;' => '&#151;',
+            '&trade;' => '&#153;',
+            '&scaron;' => '&#154;',
+            '&rsaquo;' => '&#155;',
+            '&oelig;' => '&#156;',
+            '&Yuml;' => '&#159;',
+            '&yuml;' => '&#255;',
+            '&fnof;' => '&#402;',
+            '&Alpha;' => '&#913;',
+            '&Beta;' => '&#914;',
+            '&Gamma;' => '&#915;',
+            '&Delta;' => '&#916;',
+            '&Epsilon;' => '&#917;',
+            '&Zeta;' => '&#918;',
+            '&Eta;' => '&#919;',
+            '&Theta;' => '&#920;',
+            '&Iota;' => '&#921;',
+            '&Kappa;' => '&#922;',
+            '&Lambda;' => '&#923;',
+            '&Mu;' => '&#924;',
+            '&Nu;' => '&#925;',
+            '&Xi;' => '&#926;',
+            '&Omicron;' => '&#927;',
+            '&Pi;' => '&#928;',
+            '&Rho;' => '&#929;',
+            '&Sigma;' => '&#931;',
+            '&Tau;' => '&#932;',
+            '&Upsilon;' => '&#933;',
+            '&Phi;' => '&#934;',
+            '&Chi;' => '&#935;',
+            '&Psi;' => '&#936;',
+            '&Omega;' => '&#937;',
+            '&alpha;' => '&#945;',
+            '&beta;' => '&#946;',
+            '&gamma;' => '&#947;',
+            '&delta;' => '&#948;',
+            '&epsilon;' => '&#949;',
+            '&zeta;' => '&#950;',
+            '&eta;' => '&#951;',
+            '&theta;' => '&#952;',
+            '&iota;' => '&#953;',
+            '&kappa;' => '&#954;',
+            '&lambda;' => '&#955;',
+            '&mu;' => '&#956;',
+            '&nu;' => '&#957;',
+            '&xi;' => '&#958;',
+            '&omicron;' => '&#959;',
+            '&pi;' => '&#960;',
+            '&rho;' => '&#961;',
+            '&sigmaf;' => '&#962;',
+            '&sigma;' => '&#963;',
+            '&tau;' => '&#964;',
+            '&upsilon;' => '&#965;',
+            '&phi;' => '&#966;',
+            '&chi;' => '&#967;',
+            '&psi;' => '&#968;',
+            '&omega;' => '&#969;',
+            '&thetasym;' => '&#977;',
+            '&upsih;' => '&#978;',
+            '&piv;' => '&#982;',
+            '&ensp;' => '&#8194;',
+            '&emsp;' => '&#8195;',
+            '&thinsp;' => '&#8201;',
+            '&zwnj;' => '&#8204;',
+            '&zwj;' => '&#8205;',
+            '&lrm;' => '&#8206;',
+            '&rlm;' => '&#8207;',
         ];
 
         foreach (get_html_translation_table(HTML_ENTITIES, ENT_QUOTES) as $char => $entity) {
@@ -432,7 +491,7 @@ final class Helpers
 
         $result = array_filter(
             array_map(
-                fn ($path) => is_string($path) ? AssetFactory::get($path) : [],
+                fn($path) => is_string($path) ? AssetFactory::get($path) : [],
                 $paths
             )
         );

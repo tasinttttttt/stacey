@@ -92,9 +92,9 @@ final class PageParentPropertyTest extends TestCase
     {
         // Get a nested page directly via AssetFactory
         $nestedPagePath = CONTENT_ROOT . '/projects/01.project-1';
-        
+
         // Skip if test fixture doesn't exist
-        if (!is_dir($nestedPagePath)) {
+        if (! is_dir($nestedPagePath)) {
             $this->markTestSkipped('Test fixture projects/01.project-1 does not exist');
         }
 
@@ -103,7 +103,7 @@ final class PageParentPropertyTest extends TestCase
         // The parent should be a single page object (array with page data), not an array of pages
         $this->assertNotNull($pageData['parent'], 'Parent property should not be null for nested page');
         $this->assertIsArray($pageData['parent'], 'Parent should be an array (page data)');
-        
+
         // Check that parent has correct page_name (from folder name "projects")
         $this->assertEquals('Projects', $pageData['parent']['page_name'], 'Parent page_name should be "Projects"');
     }
@@ -111,8 +111,8 @@ final class PageParentPropertyTest extends TestCase
     public function test_parent_property_contains_correct_title(): void
     {
         $nestedPagePath = CONTENT_ROOT . '/projects/01.project-1';
-        
-        if (!is_dir($nestedPagePath)) {
+
+        if (! is_dir($nestedPagePath)) {
             $this->markTestSkipped('Test fixture projects/01.project-1 does not exist');
         }
 
@@ -125,8 +125,8 @@ final class PageParentPropertyTest extends TestCase
     public function test_parent_property_contains_correct_content(): void
     {
         $nestedPagePath = CONTENT_ROOT . '/projects/01.project-1';
-        
-        if (!is_dir($nestedPagePath)) {
+
+        if (! is_dir($nestedPagePath)) {
             $this->markTestSkipped('Test fixture projects/01.project-1 does not exist');
         }
 
@@ -139,8 +139,8 @@ final class PageParentPropertyTest extends TestCase
     public function test_parent_property_contains_url_and_permalink(): void
     {
         $nestedPagePath = CONTENT_ROOT . '/projects/01.project-1';
-        
-        if (!is_dir($nestedPagePath)) {
+
+        if (! is_dir($nestedPagePath)) {
             $this->markTestSkipped('Test fixture projects/01.project-1 does not exist');
         }
 
@@ -149,7 +149,7 @@ final class PageParentPropertyTest extends TestCase
         // Check URL is correct
         $this->assertArrayHasKey('url', $pageData['parent'], 'Parent should have url');
         $this->assertStringContainsString('projects', $pageData['parent']['url'], 'Parent URL should contain "projects"');
-        
+
         // Check permalink is correct
         $this->assertArrayHasKey('permalink', $pageData['parent'], 'Parent should have permalink');
         $this->assertStringContainsString('projects', $pageData['parent']['permalink'], 'Parent permalink should contain "projects"');
@@ -158,8 +158,8 @@ final class PageParentPropertyTest extends TestCase
     public function test_parent_property_contains_slug(): void
     {
         $nestedPagePath = CONTENT_ROOT . '/projects/01.project-1';
-        
-        if (!is_dir($nestedPagePath)) {
+
+        if (! is_dir($nestedPagePath)) {
             $this->markTestSkipped('Test fixture projects/01.project-1 does not exist');
         }
 
@@ -173,8 +173,8 @@ final class PageParentPropertyTest extends TestCase
     public function test_parent_property_contains_image_data(): void
     {
         $nestedPagePath = CONTENT_ROOT . '/projects/01.project-1';
-        
-        if (!is_dir($nestedPagePath)) {
+
+        if (! is_dir($nestedPagePath)) {
             $this->markTestSkipped('Test fixture projects/01.project-1 does not exist');
         }
 
@@ -183,7 +183,7 @@ final class PageParentPropertyTest extends TestCase
         // Check image from category.yml
         $this->assertArrayHasKey('image', $pageData['parent'], 'Parent should have image');
         $this->assertEquals('01.jpg', $pageData['parent']['image'], 'Parent image should be "01.jpg"');
-        
+
         // Check image_caption
         $this->assertArrayHasKey('image_caption', $pageData['parent'], 'Parent should have image_caption');
         $this->assertStringContainsString('Projects overview', $pageData['parent']['image_caption'], 'Parent image_caption should contain "Projects overview"');
@@ -211,23 +211,24 @@ final class PageParentPropertyTest extends TestCase
     {
         // Get a deeply nested page to test parents property
         $nestedPagePath = CONTENT_ROOT . '/projects/01.project-1';
-        
-        if (!is_dir($nestedPagePath)) {
+
+        if (! is_dir($nestedPagePath)) {
             $this->markTestSkipped('Test fixture projects/01.project-1 does not exist');
         }
 
         $pageData = AssetFactory::get('projects/01.project-1');
 
         $this->assertArrayHasKey('parents', $pageData, 'Page should have parents property');
-        
+
         // parents is an array of file paths, not page data
         $this->assertNotEmpty($pageData['parents'], 'Parents property should not be empty for nested page');
-        
+
         // Check that it contains the content folder path
         $foundContentFolder = false;
         foreach ($pageData['parents'] as $parentPath) {
             if (str_contains($parentPath, 'content')) {
                 $foundContentFolder = true;
+
                 break;
             }
         }

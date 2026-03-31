@@ -235,6 +235,7 @@ final class StaceyTwigExtension extends AbstractExtension
     public function absolute($relative_path)
     {
         $helpers = new Helpers($this->config);
+
         return $helpers->relativePathToAbsoluteUrl($relative_path);
     }
 

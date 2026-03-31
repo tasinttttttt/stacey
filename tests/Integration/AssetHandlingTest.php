@@ -6,7 +6,6 @@ namespace Stacey\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 use Stacey\Core\Asset\AssetFactory;
-use Stacey\Core\Asset\Image;
 use Stacey\Core\Asset\Page;
 use Stacey\Core\Config;
 use Stacey\Core\Helpers;
@@ -19,7 +18,6 @@ use Stacey\Core\Helpers;
 final class AssetHandlingTest extends TestCase
 {
     private Config $config;
-    private Helpers $helpers;
 
     protected function setUp(): void
     {

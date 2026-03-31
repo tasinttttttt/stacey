@@ -80,6 +80,16 @@ require_once $vendorDir . '/autoload.php';
 use Stacey\Core\Config;
 use Stacey\Core\Container;
 use Stacey\Core\Stacey;
+use Symfony\Component\Yaml\Yaml;
+
+// Load shared config to get homepage setting
+$sharedData = [];
+$sharedFile = $projectRoot . '/content/_shared.yml';
+if (file_exists($sharedFile)) {
+    $sharedData = Yaml::parseFile($sharedFile) ?? [];
+}
+
+$homepage = $sharedData['homepage'] ?? 'index';
 
 // Initialize configuration
 $config = new Config(
@@ -90,6 +100,7 @@ $config = new Config(
     cacheFolder: $projectRoot . '/app/_cache',
     publicFolder: $projectRoot . '/public',
     extensionsFolder: $projectRoot . '/extension',
+    homepage: $homepage,
 );
 
 // Create DI container and run application

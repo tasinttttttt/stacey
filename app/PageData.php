@@ -22,8 +22,7 @@ final class PageData
         private readonly Config $config,
         private readonly Helpers $helpers,
         private readonly array $serverParams = [],
-    ) {
-    }
+    ) {}
 
     /**
      * Main entry point to create all page data.
@@ -179,7 +178,7 @@ final class PageData
     private function createVars(object $page): void
     {
         $page->data['file_path'] = $page->filePath;
-        
+
         // Create content-relative path for use in templates (e.g., "1.work/04.A-portee-oreille")
         $contentPath = $page->filePath;
         if (str_starts_with($contentPath, $this->config->contentFolder)) {
@@ -187,7 +186,7 @@ final class PageData
             $contentPath = ltrim($contentPath, '/');
         }
         $page->data['content_path'] = $contentPath;
-        
+
         $page->url = $this->helpers->relativeRootPath($page->urlPath . '/');
         $page->permalink = $this->helpers->modrewriteParse($page->urlPath . '/');
 
@@ -217,7 +216,7 @@ final class PageData
 
         $page->page_name = ucfirst((string) preg_replace_callback(
             '/[-_](.)/',
-            fn (array $matches): string => ' ' . strtoupper($matches[1]),
+            fn(array $matches): string => ' ' . strtoupper($matches[1]),
             $page->slug
         ));
 
@@ -257,7 +256,7 @@ final class PageData
         // Convert parent path to a single Page object (or null if no parent)
         // Ensure AssetFactory has the correct config
         \Stacey\Core\Asset\AssetFactory::setConfig($this->config);
-        $page->parent = !empty($parentPath) && is_string($parentPath[0])
+        $page->parent = ! empty($parentPath) && is_string($parentPath[0])
             ? \Stacey\Core\Asset\AssetFactory::get($parentPath[0])
             : null;
         $page->parents = $this->getParents($page->filePath);

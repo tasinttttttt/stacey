@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Homepage configuration** - Configurable homepage via `content/_shared.yml` or Config constructor
+  - New `homepage` property in `Config` class (default: 'index')
+  - Homepage can be set in `_shared.yml` with `homepage: work` (or any page path)
+  - Falls back to 'index' if configured homepage doesn't exist
+  - Files changed: `app/Config.php`, `app/Stacey.php`, `index.php`
+  - New test suite: `tests/Integration/HomepageConfigTest.php` with 5 test cases
 - **PageData is_current tests** - Comprehensive test suite for `PageData::isCurrent()` method
   - Created `tests/Unit/PageDataIsCurrentTest.php` with 13 test cases
   - Tests root index page detection (`is_current` true when permalink is 'index' and REQUEST_URI is '/')

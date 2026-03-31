@@ -68,7 +68,7 @@ final class AssetUrlTest extends TestCase
         // Create test image in fixtures
         $testImagePath = $this->config->contentFolder . '/test-asset/01.jpg';
 
-        if (!file_exists($testImagePath)) {
+        if (! file_exists($testImagePath)) {
             $this->markTestSkipped('Test image not found: ' . $testImagePath);
         }
 
@@ -87,7 +87,7 @@ final class AssetUrlTest extends TestCase
         // which would result in URLs like ../1.projects/... instead of ../content/1.projects/...
         $imagePath = $this->config->contentFolder . '/2.about/01.jpg';
 
-        if (!file_exists($imagePath)) {
+        if (! file_exists($imagePath)) {
             $this->markTestSkipped('Test image not found: ' . $imagePath);
         }
 
@@ -96,9 +96,15 @@ final class AssetUrlTest extends TestCase
 
         // The URL should NOT start with something like ./2.about/ (without content/)
         // It should be ./content/2.about/ or similar
-        $this->assertDoesNotMatchRegularExpression('#^\./\d+\.[^/]+/#', $data['url'],
-            'URL should not start with number-prefixed folder directly; content/ prefix is missing');
-        $this->assertStringContainsString('/content/', $data['url'],
-            'URL must include /content/ folder to be accessible via HTTP');
+        $this->assertDoesNotMatchRegularExpression(
+            '#^\./\d+\.[^/]+/#',
+            $data['url'],
+            'URL should not start with number-prefixed folder directly; content/ prefix is missing'
+        );
+        $this->assertStringContainsString(
+            '/content/',
+            $data['url'],
+            'URL must include /content/ folder to be accessible via HTTP'
+        );
     }
 }

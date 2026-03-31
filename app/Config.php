@@ -21,6 +21,7 @@ final readonly class Config
      * @param string $publicFolder Public directory
      * @param string $extensionsFolder Extensions directory
      * @param bool $mdGfmStyleLinebreaks Use GitHub Flavored Markdown line breaks
+     * @param string $homepage Homepage page (default: 'index')
      */
     public function __construct(
         public string $rootFolder = './',
@@ -31,6 +32,7 @@ final readonly class Config
         public string $publicFolder = './public',
         public string $extensionsFolder = './extension',
         public bool $mdGfmStyleLinebreaks = true,
+        public string $homepage = 'index',
     ) {
     }
 }

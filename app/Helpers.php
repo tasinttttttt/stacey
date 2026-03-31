@@ -133,7 +133,7 @@ final class Helpers
     {
         $params = $this->serverParams;
 
-        $isHttps = !empty($params['HTTPS']) && strtolower($params['HTTPS']) !== 'off';
+        $isHttps = ! empty($params['HTTPS']) && strtolower($params['HTTPS']) !== 'off';
         $scheme = $isHttps ? 'https://' : 'http://';
 
         $host = $params['HTTP_HOST'] ?? $params['SERVER_NAME'] ?? 'localhost';
@@ -321,6 +321,7 @@ final class Helpers
         // For root or index, return ./ for relative paths
         if ($depth === 0 || $parts[0] === 'index') {
             $result = './' . $this->modrewriteParse($url);
+
             return $result;
         }
 

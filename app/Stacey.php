@@ -22,9 +22,7 @@ final class Stacey
         private readonly Helpers $helpers,
         private readonly Cache $cache,
         private readonly array $serverParams = [],
-        private readonly array $getParams = [],
-    ) {
-    }
+    ) {}
 
     /**
      * Main entry point to run the application.
@@ -94,7 +92,20 @@ final class Stacey
         // Strip file extensions
         $route = preg_replace('/\.[\w\d]+$/', '', $route);
 
-        return $route ?: 'index';
+        // Determine homepage with validation
+        $homepage = $this->config->homepage;
+
+        // Resolve URI to folder name using existing helper
+        $resolvedPath = $this->helpers->urlToFilePath($homepage);
+        if ($resolvedPath === null) {
+            // Invalid homepage, fall back to index
+            $homepage = 'index';
+        } else {
+            // Extract clean folder name (e.g., "1.work" from full path)
+            $homepage = basename($resolvedPath);
+        }
+
+        return $route ?: $homepage;
     }
 
     /**

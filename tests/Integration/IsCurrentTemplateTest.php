@@ -23,6 +23,10 @@ final class IsCurrentTemplateTest extends TestCase
         Helpers::clearFileCache();
         $this->clearPageCache();
 
+        unset($GLOBALS['current_route'], $GLOBALS['current_page_file_path'], $GLOBALS['current_page_template_file']);
+
+        \Stacey\Core\Asset\AssetFactory::clearCache();
+
         $this->config = new Config(
             rootFolder: TEST_ROOT . '/Fixtures/',
             contentFolder: CONTENT_ROOT,

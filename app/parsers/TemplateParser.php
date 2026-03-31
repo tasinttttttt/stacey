@@ -16,15 +16,14 @@ final readonly class TemplateParser
 {
     public function __construct(
         private Config $config,
-    ) {
-    }
+    ) {}
 
     /**
      * Find and validate template file.
      *
      * @throws \RuntimeException If template not found
      */
-    private function findTemplate(string $template): string
+    private function findTemplate(string $template): string|null
     {
         if (! file_exists($template)) {
             throw new \RuntimeException("'{$template}' template not found.");

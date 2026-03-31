@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Stacey\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 use Stacey\Core\Asset\AssetFactory;
-use Stacey\Core\Asset\Image;
-use Stacey\Core\Asset\Video;
 
 /**
  * @covers \Stacey\Core\Asset\AssetFactory
@@ -69,11 +69,10 @@ final class AssetFactoryTest extends TestCase
 
     public function test_get_returns_image_data_for_image_file(): void
     {
-        // Look for any image files in content
-        $files = glob('./content/**/*.{jpg,jpeg,png,gif}', GLOB_BRACE);
+        $files = $this->findFiles(TEST_ROOT . '/Fixtures/content', ['jpg', 'jpeg', 'png', 'gif']);
 
         if (empty($files)) {
-            $this->markTestSkipped('No image files found in content directory');
+            $this->markTestSkipped('No image files found in fixtures content directory');
         }
 
         $result = AssetFactory::get($files[0]);
@@ -84,17 +83,43 @@ final class AssetFactoryTest extends TestCase
 
     public function test_get_returns_video_data_for_video_file(): void
     {
-        // Look for any video files in content
-        $files = glob('./content/**/*.{mov,mp4,m4v}', GLOB_BRACE);
+        $files = $this->findFiles(TEST_ROOT . '/Fixtures/content', ['mov', 'mp4', 'm4v', 'webm']);
 
         if (empty($files)) {
-            $this->markTestSkipped('No video files found in content directory');
+            $this->markTestSkipped('No video files found in fixtures content directory');
         }
 
         $result = AssetFactory::get($files[0]);
 
         $this->assertIsArray($result);
         $this->assertArrayHasKey('file_name', $result);
+    }
+
+    /**
+     * Recursively find files with given extensions.
+     *
+     * @return array<int, string>
+     */
+    private function findFiles(string $dir, array $extensions): array
+    {
+        $files = [];
+
+        if (! is_dir($dir)) {
+            return $files;
+        }
+
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($dir, RecursiveDirectoryIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::LEAVES_ONLY
+        );
+
+        foreach ($iterator as $file) {
+            if (in_array(strtolower($file->getExtension()), $extensions, true)) {
+                $files[] = $file->getPathname();
+            }
+        }
+
+        return $files;
     }
 
     public function test_get_treats_directory_as_page(): void
